@@ -24,7 +24,6 @@ add_library(fabm_models_ersem OBJECT
             carbonate.F90
             oxygen.F90
             nitrification.F90
-            nitrous_oxide.F90
             benthic_column.F90
             benthic_column_dissolved_matter.F90
             benthic_column_particulate_matter.F90
@@ -32,7 +31,6 @@ add_library(fabm_models_ersem OBJECT
             benthic_bacteria.F90
             benthic_fauna.F90
             benthic_carbonate.F90
-            benthic_calcite.F90
             benthic_erosion.F90
             fluff.F90
             zenith_angle.F90

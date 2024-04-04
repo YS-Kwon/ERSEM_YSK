@@ -318,8 +318,7 @@ module ersem_benthic_column_particulate_matter
    type,extends(type_ersem_benthic_base),public :: type_ersem_benthic_column_particulate_matter
       type (type_bottom_state_variable_id) :: id_penetration_c,id_penetration_n,id_penetration_p,id_penetration_s
       type (type_bottom_state_variable_id) :: id_buried_c,id_buried_n,id_buried_p,id_buried_s
-      type (type_horizontal_diagnostic_variable_id) :: id_burial_flux_c, id_burial_flux_n, id_burial_flux_p, id_burial_flux_s
-      type (type_bottom_state_variable_id) :: id_resuspendable_c,id_resuspendable_p,id_resuspendable_n,id_resuspendable_s         
+      type (type_bottom_state_variable_id) :: id_resuspendable_c,id_resuspendable_p,id_resuspendable_n,id_resuspendable_s
       type (type_horizontal_dependency_id) :: id_D, id_z_tur, id_d_tot, id_er
 
       logical :: burial
@@ -427,22 +426,18 @@ contains
          if (_VARIABLE_REGISTERED_(self%id_c)) then
             call self%register_state_dependency(self%id_buried_c,'buried_c','mg C/m^2','buried carbon')
             call self%request_coupling_to_model(self%id_buried_c,'burial_target','c')
-            call self%register_diagnostic_variable(self%id_burial_flux_c,'burial_flux_c','mg C/m^2/d','burial of carbon',source=source_do_bottom)
          end if
          if (_VARIABLE_REGISTERED_(self%id_p)) then
             call self%register_state_dependency(self%id_buried_p,'buried_p','mmol P/m^2','buried phosphorus')
             call self%request_coupling_to_model(self%id_buried_p,'burial_target','p')
-            call self%register_diagnostic_variable(self%id_burial_flux_p,'burial_flux_p','mmol P/m^2/d','burial of phosphorus',source=source_do_bottom)
          end if
          if (_VARIABLE_REGISTERED_(self%id_n)) then
             call self%register_state_dependency(self%id_buried_n,'buried_n','mmol N/m^2','buried nitrogen')
             call self%request_coupling_to_model(self%id_buried_n,'burial_target','n')
-            call self%register_diagnostic_variable(self%id_burial_flux_n,'burial_flux_n','mmol N/m^2/d','burial of nitrogen',source=source_do_bottom)
          end if
          if (_VARIABLE_REGISTERED_(self%id_s)) then
             call self%register_state_dependency(self%id_buried_s,'buried_s','mmol Si/m^2','buried silicate')
             call self%request_coupling_to_model(self%id_buried_s,'burial_target','s')
-            call self%register_diagnostic_variable(self%id_burial_flux_s,'burial_flux_s','mmol Si/m^2/d','burial of silicate',source=source_do_bottom)
          end if
       end if
 
@@ -513,7 +508,6 @@ contains
                burial_flux = C_int/(1.0_rk - exp(-z_bot/z_mean))*exp(-z_bot/z_mean)*z_bot/z_mean*z_mean_sms/z_mean
                _SET_BOTTOM_ODE_(self%id_c,-burial_flux)
                _SET_BOTTOM_ODE_(self%id_buried_c,burial_flux)
-               _SET_HORIZONTAL_DIAGNOSTIC_(self%id_burial_flux_c,burial_flux)
             end if
             if (self%resuspension) then
                _GET_HORIZONTAL_(self%id_c,C_int)
@@ -532,7 +526,6 @@ contains
                burial_flux = C_int/(1.0_rk - exp(-z_bot/z_mean))*exp(-z_bot/z_mean)*z_bot/z_mean*z_mean_sms/z_mean
                _SET_BOTTOM_ODE_(self%id_p,-burial_flux)
                _SET_BOTTOM_ODE_(self%id_buried_p,burial_flux)
-               _SET_HORIZONTAL_DIAGNOSTIC_(self%id_burial_flux_p,burial_flux)
             end if
             if (self%resuspension) then
                _GET_HORIZONTAL_(self%id_p,C_int)
@@ -551,7 +544,6 @@ contains
                burial_flux = C_int/(1.0_rk - exp(-z_bot/z_mean))*exp(-z_bot/z_mean)*z_bot/z_mean*z_mean_sms/z_mean
                _SET_BOTTOM_ODE_(self%id_n,-burial_flux)
                _SET_BOTTOM_ODE_(self%id_buried_n,burial_flux)
-               _SET_HORIZONTAL_DIAGNOSTIC_(self%id_burial_flux_n,burial_flux)
             end if
             if (self%resuspension) then
                _GET_HORIZONTAL_(self%id_n,C_int)
@@ -570,7 +562,6 @@ contains
                burial_flux = C_int/(1.0_rk - exp(-z_bot/z_mean))*exp(-z_bot/z_mean)*z_bot/z_mean*z_mean_sms/z_mean
                _SET_BOTTOM_ODE_(self%id_s,-burial_flux)
                _SET_BOTTOM_ODE_(self%id_buried_s,burial_flux)
-               _SET_HORIZONTAL_DIAGNOSTIC_(self%id_burial_flux_s,burial_flux)
             end if
             if (self%resuspension) then
                _GET_HORIZONTAL_(self%id_s,C_int)
@@ -608,12 +599,7 @@ contains
          call self%get_parameter(self%maximum_depth,'maximum_depth','m','maximum depth',default=0.0_rk)
       end if
       call self%get_parameter(remin,'remin','1/d','remineralization rate at 10 degrees Celsius',default=0.0_rk)
-      if  (remin /= 0._rk) then
-         call self%get_parameter(q10, 'q10', '-', 'Q_10 temperature coefficient', default=1.0_rk, minimum=1.0_rk)
-      else
-         q10=1.0_rk
-      endif
-
+      if  (remin /= 0._rk) call self%get_parameter(q10, 'q10', '-', 'Q_10 temperature coefficient', default=1.0_rk, minimum=1.0_rk)
       call self%get_parameter(source_depth_distribution,'source_depth_distribution', '','vertical distribution of changes (1: constant absolute rate, 2: constant relative rate, 3: constant carbon-based relative rate)',default=1)
 
       call self%register_dependency(self%id_d_tot,depth_of_sediment_column)
@@ -646,7 +632,8 @@ contains
       type (type_bulk_standard_variable),       intent(in)            :: aggregate_target
       real(rk),optional,                        intent(in)            :: aggregate_scale_factor
 
-      class (type_constituent_for_single_layer_change), pointer :: change_processor
+      class (type_constituent_for_single_layer_change),pointer :: change_processor
+      type (type_link),                                pointer :: link
 
       ! Register the only diagnostic for this constituent: mass integrated over desired depth interval.
       ! This diagnostic acts like a state variable, so that other models can provides sinks and sources.
@@ -717,11 +704,11 @@ contains
              call change_processor%register_state_dependency(change_processor%id_remin_ox,'o_remin_source','mmol O_2/m^2','oxygen')
              call change_processor%request_coupling(change_processor%id_remin_ox, '../o_remin_source')
          end if
-         call change_processor%register_diagnostic_variable(change_processor%id_remin_flux,'remin_flux',units//'/m^2/d','mineralisation flux',source=source_do_bottom)
+         call change_processor%register_diagnostic_variable(change_processor%id_remin_flux,'remin_flux',units//'/m^2/d','mineralisation flux')
          ! Couple submodel dependencies to top-level ("self") equivalents.
          ! For the remineralization target, register an alias at the top level so that it can be coupled directly from fabm.yaml.
          call change_processor%request_coupling(change_processor%id_local,'../'//name)
-         call self%add_horizontal_variable(name//'_remin_target',units//'/m^2','sink for remineralized '//long_name,act_as_state_variable=.true.)
+         call self%add_horizontal_variable(name//'_remin_target',units//'/m^2','sink for remineralized '//long_name,act_as_state_variable=.true.,link=link)
          call change_processor%request_coupling(change_processor%id_remin_target,'../'//name//'_remin_target')
          call change_processor%register_dependency(change_processor%id_ETW, standard_variables%temperature)
       end if

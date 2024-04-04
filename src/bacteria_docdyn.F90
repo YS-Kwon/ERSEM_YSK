@@ -14,19 +14,17 @@ module ersem_bacteria_docdyn
 
    type,extends(type_ersem_pelagic_base),public :: type_ersem_bacteria_docdyn
       ! Variables
-      type (type_state_variable_id) :: id_O3c, id_O2o, id_TA, id_N3n
+      type (type_state_variable_id) :: id_O3c, id_O2o, id_TA
       type (type_state_variable_id) :: id_R1c, id_R2c, id_R3c
       type (type_state_variable_id) :: id_R1p
       type (type_state_variable_id) :: id_R1n
-      type (type_state_variable_id) :: id_N1p,id_N4n,id_N7f,id_N6
+      type (type_state_variable_id) :: id_N1p,id_N4n,id_N7f
       type (type_dependency_id)     :: id_ETW,id_eO2mO2
       type (type_state_variable_id),allocatable,dimension(:) :: id_RPc,id_RPp,id_RPn,id_RPf
       type (type_model_id),         allocatable,dimension(:) :: id_RP
-
-      type (type_diagnostic_variable_id) :: id_fB1O3c, id_fB1NIn, id_fB1N1p,id_bgeff,id_fdenit,id_fanox,id_freox
-
-      type (type_diagnostic_variable_id) :: id_fR1B1c, id_fR2B1c, id_fR3B1c,id_fRPB1c,id_fB1R1c, id_fB1R2c, id_fB1R3c
-      type (type_diagnostic_variable_id) :: id_fR1B1n,id_fB1R1n,id_fR1B1p,id_fB1R1p,id_fRPB1n,id_fRPB1p
+      type (type_diagnostic_variable_id) :: id_fB1O3c, id_fB1NIn, id_fB1N1p
+      type (type_diagnostic_variable_id) :: id_fR1B1c, id_fR2B1c, id_fR3B1c,id_fB1R1c, id_fB1R2c, id_fB1R3c
+      type (type_diagnostic_variable_id) :: id_fR1B1n,id_fB1R1n,id_fR1B1p,id_fB1R1p
       type (type_diagnostic_variable_id) :: id_minn,id_minp
       ! Parameters
       integer  :: nRP
@@ -41,8 +39,6 @@ module ersem_bacteria_docdyn
       real(rk) :: rR2B1X,rR3B1X
       real(rk),allocatable :: sRPR1(:)
       real(rk) :: frB1R3
-      real(rk) :: DeniX,reoX,omroX,omonX,chN3oX
-      integer  :: denit
 
       ! Remineralization
       real(rk) :: sR1N1X,sR1N4X
@@ -88,22 +84,6 @@ contains
       call self%get_parameter(self%qpB1cX,  'qpc',     'mmol P/mg C','maximum phosphorus to carbon ratio')
       call self%get_parameter(self%qnB1cX,  'qnc',     'mmol N/mg C','maximum nitrogen to carbon ratio')
       call self%get_parameter(self%urB1_O2X,'ur_O2',   'mmol O_2/mg C','oxygen consumed per carbon respired')
-      call self%get_parameter(self%denit,   'denit',   '-',           'denitrification switch (0: off, 1: on)',default=0)
-
-      if (self%denit == 1) then
-      call self%get_parameter(self%DeniX,   'DeniX',   '1/d',         'specific denitrification rate')
-      call self%get_parameter(self%reoX,    'reoX',    '1/d',         'specific reoxidation rate of reduction equivalents')
-      call self%get_parameter(self%omroX,   'omroX',   'mmol HS mmol O2-1', 'stoichiometric coefficient')
-      call self%get_parameter(self%omonX,   'omonX',   'mmol O2 mmol N-1',  'stoichiometric coefficient for denitrification reaction')
-      call self%get_parameter(self%chN3oX,  'chN3o',   '(mmol O_2/m^3)^3', 'Michaelis-Menten constant for cubic oxygen dependence of nitrification')
-
-      call self%register_state_dependency(self%id_N3n,'N3n','mmol N/m^3','nitrate')
-      call self%register_state_dependency(self%id_N6,'N6','mmol HS-/m^3','reduction equivalent')
-
-      call self%register_diagnostic_variable(self%id_fdenit,'fdenit','mmol N/m^3/d','denitrification', missing_value=0._rk)
-      call self%register_diagnostic_variable(self%id_fanox,'fanox',  '-',           'fanox',           missing_value=0._rk)
-      call self%register_diagnostic_variable(self%id_freox,'freox',  '-',           'freox',           missing_value=0._rk)
-      end if
 
       ! Remineralization parameters
       call self%get_parameter(self%sR1N1X,   'sR1N1',   '1/d',    'mineralisation rate of labile dissolved organic phosphorus')
@@ -179,7 +159,6 @@ contains
       call self%register_diagnostic_variable(self%id_fB1O3c,'fB1O3c','mg C/m^3/d','respiration')
       call self%register_diagnostic_variable(self%id_fB1NIn,'fB1NIn','mmol N/m^3/d','release of DIN')
       call self%register_diagnostic_variable(self%id_fB1N1p,'fB1N1p','mmol P/m^3/d','release of DIP')
-      call self%register_diagnostic_variable(self%id_bgeff,'bgeff','','bacterial growth efficiency')
 
       call self%register_diagnostic_variable(self%id_fB1R1c,'fB1R1c','mg C/m^3/d','release of labile DOC ')
       call self%register_diagnostic_variable(self%id_fB1R2c,'fB1R2c','mg C/m^3/d','release of semi-labile DOC ')
@@ -190,9 +169,6 @@ contains
       call self%register_diagnostic_variable(self%id_fR1B1c,'fR1B1c','mg C/m^3/d','uptake of labile DOC ')
       call self%register_diagnostic_variable(self%id_fR2B1c,'fR2B1c','mg C/m^3/d','uptake of semi-labile DOC ')
       call self%register_diagnostic_variable(self%id_fR3B1c,'fR3B1c','mg C/m^3/d','uptake of semi-refractory DOC ')
-      call self%register_diagnostic_variable(self%id_fRPB1c,'fRPB1c','mg C/m^3/d','total uptake of POC')
-      call self%register_diagnostic_variable(self%id_fRPB1n,'fRPB1n','mg N/m^3/d','total uptake of PON')
-      call self%register_diagnostic_variable(self%id_fRPB1p,'fRPB1p','mg P/m^3/d','total uptake of POP')
       call self%register_diagnostic_variable(self%id_fR1B1n,'fR1B1n','mmol N/m^3/d','uptake of DON')
       call self%register_diagnostic_variable(self%id_fR1B1p,'fR1B1p','mmol P/m^3/d','uptake of DOP')
 
@@ -209,19 +185,18 @@ contains
       real(rk) :: ETW,eO2mO2
       real(rk) :: B1c,B1n,B1p
       real(rk) :: B1cP,B1nP,B1pP
-      real(rk) :: N1pP,N4nP,R1c,R1cP,R1pP,R1nP,R2c,N3n,N6,O2o
+      real(rk) :: N1pP,N4nP,R1c,R1cP,R1pP,R1nP,R2c
       real(rk) :: qpB1c,qnB1c
       real(rk) :: etB1,eO2B1
       real(rk) :: sB1RD,sutB1,rumB1,sugB1,rugB1,rraB1,fB1O3c
       real(rk) :: sB1R2,fB1R2c,fB1R3c,fB1RDc
-      real(rk) :: netb1,bgeff
+      real(rk) :: netb1,bge
       real(rk) :: fB1N1p,fR1B1p,fB1RDp
       real(rk) :: fB1NIn,fR1B1n,fB1RDn
       real(rk) :: R3c,R2cP,R3cP
       real(rk) :: fB1R1c
       real(rk) :: totsubst
       real(rk) :: CORROX
-      real(rk) :: fdenit,denitpot,deniteff,o2state,freox,fanox
       integer  :: iRP
       real(rk),dimension(self%nRP) :: RPc,RPcP,RPnP,RPpP
       real(rk),dimension(self%nRP) :: fRPB1c,fRPB1p,fRPB1n
@@ -260,15 +235,6 @@ contains
 
          qpB1c = B1p/B1c
          qnB1c = B1n/B1c
-
-        if (self%denit == 1) then   
-            _GET_(self%id_N3n,N3n)
-            _GET_(self%id_O2o,O2o)
-            O2o = max(0.0_rk,O2o)
-            o2state = O2o**3/(O2o**3 + self%chN3oX)
-            _GET_(self%id_N6,N6)
-        end if
-
 !..Temperature effect on pelagic bacteria:
 
          etB1 = max(0.0_rk,self%q10B1X**((ETW-10._rk)/10._rk) - self%q10B1X**((ETW-32._rk)/3._rk))
@@ -324,35 +290,14 @@ contains
          fB1R3c=self%frB1R3*rraB1
          fB1RDc = fB1R1c + fB1R2c + fB1R3c
 
-! Denitrification implemented as in Sankar et al. (2008), doi.org/10.1016/j.ecolmodel.2018.01.016
-     if (self%denit == 1) then      
-        denitpot = self%DeniX * N3n !eq.6
-        deniteff = max(0._rk, self%urB1_O2X * (1._rk-o2state) * fB1O3c / self%omonX) !eq.7
-        fdenit = min(denitpot, deniteff) !eq.5
-
-        _SET_DIAGNOSTIC_(self%id_fdenit,fdenit)
-        _SET_ODE_(self%id_N3n, -fdenit)
-
-! Reduced sulfur formation corresponds to eq.9 in Sankar et al. (2008)
-        fanox = self%omroX * (self%urB1_O2X * (1._rk-o2state) * fB1O3c - self%omonX * fdenit)
-        freox = self%reoX * etB1 * o2state * N6
-
-        _SET_DIAGNOSTIC_(self%id_fanox,freox)
-        _SET_DIAGNOSTIC_(self%id_freox,fanox)
-
-        _SET_ODE_(self%id_N6, fanox - freox)
-     end if 
-
 !..net bacterial production
 
          netb1 = rugB1 - fB1o3c - fB1RDc
          IF (netB1.gt.0._rk) THEN
-            bgeff=netB1/rugB1
+            BGE=netB1/rugB1
          ELSE
-            bgeff=0._rk
+            BGE=0._rk
          ENDIF
-
-         _SET_DIAGNOSTIC_(self%id_bgeff, bgeff)
 
 !..Source equations
 
@@ -366,7 +311,6 @@ contains
          _SET_DIAGNOSTIC_(self%id_fB1R2c, fB1R2c)
          _SET_DIAGNOSTIC_(self%id_fB1R3c, fB1R3c)
          _SET_DIAGNOSTIC_(self%id_fR1B1c, sugB1*R1cP)
-         _SET_DIAGNOSTIC_(self%id_fRPB1c, sum(fRPB1c))
          _SET_DIAGNOSTIC_(self%id_fR2B1c, sugB1*R2cP*self%rR2B1X)
          _SET_DIAGNOSTIC_(self%id_fR3B1c, sugB1*R3cP*self%rR3B1X)
 
@@ -375,14 +319,7 @@ contains
          end do
 
          _SET_ODE_(self%id_O3c,+ fB1O3c/CMass)
-
-!..oxygen consumption.....................................................
- 
-         if (self%denit == 1) then
-         _SET_ODE_(self%id_O2o, -o2state*fB1O3c*self%urB1_O2X - freox/self%omroX) 
-         else 
-         _SET_ODE_(self%id_O2o, -fB1O3c*self%urB1_O2X)
-         end if
+         _SET_ODE_(self%id_O2o,- fB1O3c*self%urB1_O2X)
 
 !..Phosphorus dynamics in bacteria........................................
 
@@ -419,7 +356,6 @@ contains
          _SET_DIAGNOSTIC_(self%id_fB1N1p,fB1N1p)
          _SET_DIAGNOSTIC_(self%id_fB1R1p, fB1RDp)
          _SET_DIAGNOSTIC_(self%id_fR1B1p, fR1B1p)
-         _SET_DIAGNOSTIC_(self%id_fRPB1p, sum(fRPB1p))
 
 !..Nitrogen dynamics in bacteria........................................
 
@@ -455,7 +391,6 @@ contains
          _SET_DIAGNOSTIC_(self%id_fB1NIn,fB1NIn)
          _SET_DIAGNOSTIC_(self%id_fB1R1n, fB1RDn)
          _SET_DIAGNOSTIC_(self%id_fR1B1n, fR1B1n)
-         _SET_DIAGNOSTIC_(self%id_fRPB1n, sum(fRPB1n))
 
       ! Leave spatial loops (if any)
       _LOOP_END_
