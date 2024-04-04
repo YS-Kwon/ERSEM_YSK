@@ -20,7 +20,7 @@ module ersem_oxygen
 
    type,extends(type_base_model),public :: type_ersem_oxygen
 !     Variable identifiers
-      type (type_state_variable_id)     :: id_O2o
+      type (type_state_variable_id)     :: id_O2o,id_R5s   !!YSK added R5s for air deposition
       type (type_dependency_id)         :: id_ETW, id_X1X
       type (type_horizontal_dependency_id) :: id_wnd
 
@@ -28,6 +28,7 @@ module ersem_oxygen
       type (type_horizontal_diagnostic_variable_id) ::  id_fair
 
       integer :: iswO2X, iswASFLUX
+      real(rk) :: sddep   !!YSK added
    contains
       procedure :: initialize
       procedure :: do
@@ -47,8 +48,12 @@ contains
 !BOC
       call self%get_parameter(self%iswO2X,'iswO2','','saturation formulation (1: legacy ERSEM, 2: Weiss 1970, 3: Nightingale et al. 2000, 4: Wanninkhof 2014)')
       call self%get_parameter(self%iswASFLUX,'iswASFLUX','','air-sea O2 exchange (0: none, 1: Nightingale et al. 2000, 2: Wanninkhof 1992 without chemical enhancement, 3: Wanninkhof 1992 with chemical enhancement, 4: Wanninkhof and McGillis 1999, 5: Wanninkhof 1992 switching to Wanninkhof and McGillis 1999, 6: Wanninkhof 2014)',default=6)
+      
+      !YSK added for air deposition of SS 
+      call self%get_parameter(self%sddep,'sddep','g Si/m^2/d','SS deposition from air')
 
       call self%register_state_variable(self%id_O2o,'o','mmol O_2/m^3','oxygen',300._rk)
+      call self%register_state_variable(self%id_R5s,'s','g Si/m^3','suspended sediment',2._rk)
 
       call self%register_diagnostic_variable(self%id_eO2mO2,'eO2mO2','1','relative saturation', &
          standard_variable=standard_variables%fractional_saturation_of_oxygen)
@@ -85,11 +90,12 @@ contains
       class (type_ersem_oxygen), intent(in) :: self
       _DECLARE_ARGUMENTS_DO_SURFACE_
 
-      real(rk) :: O2o,ETW,T,X1X,wnd
+      real(rk) :: O2o,ETW,T,X1X,wnd,R5s    !YSK added R5s
       real(rk) :: OSAT,sc,ko2o,FAIRO2
 
       _HORIZONTAL_LOOP_BEGIN_
          _GET_(self%id_O2o,O2o)
+         _GET_(self%id_R5s,R5s)   !!YSK added R5s
          _GET_(self%id_ETW,ETW)
          _GET_(self%id_X1X,X1X)
          _GET_HORIZONTAL_(self%id_wnd,wnd)
@@ -133,6 +139,11 @@ contains
          FAIRO2 = ko2o*(OSAT-O2o)
 
          _SET_SURFACE_EXCHANGE_(self%id_O2o,FAIRO2)
+
+         if (ETW .ge. 10._rk .and. ETW .le. 18._rk) then
+            _SET_SURFACE_EXCHANGE_(self%id_R5s,self%sddep)     !!YSK added for air deposition of SS
+         end if
+
          _SET_HORIZONTAL_DIAGNOSTIC_(self%id_fair,FAIRO2)
       _HORIZONTAL_LOOP_END_
    end subroutine

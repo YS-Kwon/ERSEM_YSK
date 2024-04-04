@@ -14,7 +14,7 @@ module ersem_pelagic_base
 
    type,extends(type_particle_model),public :: type_ersem_pelagic_base
       type (type_state_variable_id)                 :: id_c,id_n,id_p,id_f,id_s,id_chl,id_h
-      type (type_horizontal_dependency_id)          :: id_bedstress,id_wdepth
+      type (type_horizontal_dependency_id)          :: id_bedstress,id_wdepth,id_taub  !YSK added taub
       type (type_dependency_id)                     :: id_dens
       type (type_horizontal_diagnostic_variable_id) :: id_w_bot
       type (type_horizontal_diagnostic_variable_id),allocatable,dimension(:) :: id_cdep,id_ndep,id_pdep,id_sdep,id_fdep
@@ -173,11 +173,14 @@ contains
       end if
 
       if (self%ndeposition>0) then
-         call self%get_parameter(vel_crit,'vel_crit','m/s','critical bed shear velocity for deposition',default=0.01_rk)
-         self%tdep = vel_crit**2
+         call self%get_parameter(vel_crit,'vel_crit','m/s','critical bed shear velocity for deposition',default=0.00_rk)
+         self%tdep = vel_crit    !(**2)   YSK modified
 
-         call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         !call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         !!YSK added taub
+         call self%register_dependency(self%id_taub,standard_variables%bottom_stress) 
          call self%register_dependency(self%id_dens,     standard_variables%density)
+
       end if
 
       ! Vertical velocity (positive: downwards, negative: upwards)
@@ -341,16 +344,19 @@ contains
          if (self%ndeposition/=0) then
 
          ! Retrieve bed stress and local density - needed to determine sedimentation rate from sinking rate.
-         _GET_HORIZONTAL_(self%id_bedstress,tbed)
+         !_GET_HORIZONTAL_(self%id_bedstress,tbed)
+         !!YSK added taub
+         _GET_HORIZONTAL_(self%id_taub,tbed)
          _GET_(self%id_dens,density)
 
          ! Divide actual bed stress (Pa) by density (kg/m^3) to obtain square of bed shear velocity.
-         tbed = tbed/density
+         !tbed = tbed/density
 
          ! Deposition rate based on sinking velocity but mediated by bottom stress (high stress = no deposition)
          ! Original reference: Puls and Suendermann 1990. However, they use the ratio of shear velocities, while we use its square.
          !sdrate = min(fsd*fac,pdepth(I)/timestep) ! Jorn: CFL criterion disabled because FABM does not provide timestep
          sdrate = w * max(0._rk, 1._rk - tbed/self%tdep)
+         !write(*,*) tbed, self%tdep
 
          if (_AVAILABLE_(self%id_c)) then
             _GET_(self%id_c,conc)

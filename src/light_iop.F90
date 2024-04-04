@@ -11,6 +11,8 @@ module ersem_light_iop
 
    type,extends(type_base_model),public :: type_ersem_light_iop
       ! Identifiers for diagnostic variables
+      type (type_state_variable_id) :: id_R5s, id_R6s, id_R8s  !!YSK added
+
       type (type_diagnostic_variable_id)   :: id_EIR, id_parEIR, id_xEPS, id_secchi, id_iopABS, id_iopBBS
       type (type_dependency_id)            :: id_dz, id_abESS ,id_iopABSp, id_iopBBSp
       type (type_horizontal_dependency_id) :: id_I_0, id_zenithA
@@ -43,6 +45,10 @@ contains
       call self%get_parameter(self%b0w,    'b0w',   '1/m',   'backscatter coefficient of clear water', default=.0016_rk)
       call self%get_parameter(self%pEIR_eowX,'pEIR_eow','-', 'photosynthetically active fraction of shortwave radiation', default=.5_rk)
 
+      call self%register_state_dependency(self%id_R5s,'R5s','mg/m^3',  'silt silicon')
+      call self%register_state_dependency(self%id_R6s,'R6s','mg/m^3',  'medium size opal')
+      call self%register_state_dependency(self%id_R8s,'R8s','mg/m^3',  'large size opal')
+
       ! Register diagnostic variables
       call self%register_diagnostic_variable(self%id_EIR,'EIR','W/m^2','shortwave radiation', &
               standard_variable=standard_variables%downwelling_shortwave_flux,source=source_do_column)
@@ -71,6 +77,8 @@ contains
       _DECLARE_ARGUMENTS_VERTICAL_
 
       real(rk) :: buffer,dz,xEPS,iopABS,iopBBS,xtnc,EIR,abESS,zenithA
+      real(rk) :: R5s,R5sP,R6s,R6sP,R8s,R8sP    !!YSK added
+
       real(rk),parameter :: bpk=.00022_rk
 
       _GET_HORIZONTAL_(self%id_I_0,buffer)
@@ -82,7 +90,25 @@ contains
          _GET_(self%id_dz,dz)          ! Layer height (m)
          _GET_(self%id_iopABSp,iopABS) ! Absorption coefficient of shortwave radiation, due to particulate organic material (m-1)
          _GET_(self%id_iopBBSp,iopBBS) ! Backscatter coefficient of shortwave radiation, due to particulate organic material (m-1)
-         _GET_(self%id_abESS,abESS)    ! Suspended silt absorption
+         !_GET_(self%id_abESS,abESS)    ! Suspended silt absorption
+
+
+         !!!YSK added for modifying ESS
+         _GET_(self%id_R5s,R5sP)
+         _GET_(self%id_R6s,R6sP)
+         _GET_(self%id_R8s,R8sP)
+
+
+         abESS = 0.041*R5sP  !g m-3   !!Wozniak 2007 Table5.28 
+         !abESS = 0.0453*(R5sP)**1.1131  !!Prabhakaran et al. 2018
+         !write(*,*) abESS
+
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+
          iopABS = iopABS+abESS+self%a0w
          iopBBS = iopBBS+bpk+self%b0w
          xEPS = (1._rk+.005_rk*zenithA)*iopABS+4.18_rk*(1._rk-.52_rk*exp(-10.8_rk*iopABS))*iopBBS ! Lee et al. (2005) J Geophys Res Eq 11

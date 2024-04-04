@@ -15,7 +15,7 @@ module ersem_bacteria_docdyn
    type,extends(type_ersem_pelagic_base),public :: type_ersem_bacteria_docdyn
       ! Variables
       type (type_state_variable_id) :: id_O3c, id_O2o, id_TA, id_N3n
-      type (type_state_variable_id) :: id_R1c, id_R2c, id_R3c,id_R5s  !!YSK added R5
+      type (type_state_variable_id) :: id_R1c, id_R2c, id_R3c
       type (type_state_variable_id) :: id_R1p
       type (type_state_variable_id) :: id_R1n
       type (type_state_variable_id) :: id_N1p,id_N4n,id_N7f,id_N6
@@ -41,7 +41,7 @@ module ersem_bacteria_docdyn
       real(rk) :: rR2B1X,rR3B1X
       real(rk),allocatable :: sRPR1(:)
       real(rk) :: frB1R3
-      real(rk) :: DeniX,reoX,omroX,omonX,chN3oX,sdflux   !!YSK added sdflux
+      real(rk) :: DeniX,reoX,omroX,omonX,chN3oX
       integer  :: denit
 
       ! Remineralization
@@ -89,7 +89,6 @@ contains
       call self%get_parameter(self%qnB1cX,  'qnc',     'mmol N/mg C','maximum nitrogen to carbon ratio')
       call self%get_parameter(self%urB1_O2X,'ur_O2',   'mmol O_2/mg C','oxygen consumed per carbon respired')
       call self%get_parameter(self%denit,   'denit',   '-',           'denitrification switch (0: off, 1: on)',default=0)
-      call self%get_parameter(self%sdflux,  'sdflux',  'mmol Si/m^3/d', 'suspended sediment flux')
 
       if (self%denit == 1) then
       call self%get_parameter(self%DeniX,   'DeniX',   '1/d',         'specific denitrification rate')
@@ -122,8 +121,6 @@ contains
       ! Register links to nutrient pools.
       call self%register_state_dependency(self%id_N1p,'N1p','mmol P/m^3','phosphate')
       call self%register_state_dependency(self%id_N4n,'N4n','mmol N/m^3','ammonium')
-      call self%register_state_dependency(self%id_R5s,'R5s','mmol S/m^3','silt silicon')
-
       if (use_iron) call self%register_state_dependency(self%id_N7f,'N7f','umol Fe/m^3','inorganic iron')
 
       ! Register links to labile dissolved organic matter pools.
@@ -212,7 +209,7 @@ contains
       real(rk) :: ETW,eO2mO2
       real(rk) :: B1c,B1n,B1p
       real(rk) :: B1cP,B1nP,B1pP
-      real(rk) :: N1pP,N4nP,R1c,R1cP,R1pP,R1nP,R2c,N3n,N6,O2o,R5s,R5sP   !!YSK added R5
+      real(rk) :: N1pP,N4nP,R1c,R1cP,R1pP,R1nP,R2c,N3n,N6,O2o
       real(rk) :: qpB1c,qnB1c
       real(rk) :: etB1,eO2B1
       real(rk) :: sB1RD,sutB1,rumB1,sugB1,rugB1,rraB1,fB1O3c
@@ -250,8 +247,6 @@ contains
          _GET_(self%id_R1c,R1cP)
          _GET_(self%id_R1p,R1pP)
          _GET_(self%id_R1n,R1nP)
-         _GET_(self%id_R5s,R5sP)
-
 
          _GET_WITH_BACKGROUND_(self%id_R3c,R3c)
          _GET_(self%id_R2c,R2cP)
@@ -419,13 +414,6 @@ contains
          _SET_ODE_(self%id_N1p, + fB1N1p)
          _SET_ODE_(self%id_R1p, + fB1RDp - fR1B1p)
          _SET_ODE_(self%id_TA,  - fB1N1p)   ! Contribution to alkalinity: -1 for phosphate
-
-
-         !!!YSK added for suspended sediment flux
-         if (ETW .le. 30.0_rk) then
-            _SET_ODE_(self%id_R5s, + self%sdflux)
-         end if
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !..Set diagnostics
          _SET_DIAGNOSTIC_(self%id_fB1N1p,fB1N1p)

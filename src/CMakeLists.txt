@@ -23,6 +23,7 @@ add_library(fabm_models_ersem OBJECT
             calcification.F90
             carbonate.F90
             oxygen.F90
+#            nitrogen_depos.F90
             nitrification.F90
             nitrous_oxide.F90
             benthic_column.F90

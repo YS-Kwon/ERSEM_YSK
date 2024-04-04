@@ -25,7 +25,7 @@ module ersem_benthic_base
       type (type_state_variable_id) :: id_O3c,id_N1p,id_N3n,id_N4n,id_N5s,id_N7f,id_TA
 
       ! Dependencies for resuspension
-      type (type_horizontal_dependency_id) :: id_bedstress
+      type (type_horizontal_dependency_id) :: id_taub,id_bedstress    !!YSK added taub
       type (type_dependency_id)            :: id_dens, id_ETW
 
       ! Parameters
@@ -71,7 +71,10 @@ contains
       if (self%resuspension) then
          call self%get_parameter(self%er,'er','1/d','erosion rate',default=0.225_rk)
          call self%get_parameter(self%vel_crit,'vel_crit','m/s','critical shear velocity for resuspension',default=0.02_rk)
-         call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         !call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         !!YSK added taub 
+         call self%register_dependency(self%id_taub,standard_variables%bottom_stress)
+
          call self%register_dependency(self%id_dens,     standard_variables%density)
       end if
 
@@ -110,7 +113,7 @@ contains
    subroutine initialize_ersem_benthic_base(self)
       class (type_ersem_benthic_base), intent(inout), target :: self
 
-      self%resuspension = .false.
+      self%resuspension = .True.     !.false.
 
       ! Set time unit to d-1
       ! This implies that all rates (sink/source terms, vertical velocities) are given in d-1.
@@ -181,9 +184,14 @@ contains
             ! - v_crit being the critical shear velocity (m/s) for resuspension (Puls & Suendermann 1990: v_crit=0.02)
             ! With porosity=0.4, a representative value for er is 100*100/(2650000*0.6)*0.02^2*86400 = 0.225 1/d
             ! Note that the square of bed shear velocity is calculated as the ratio between shear stress (Pa) and water density (kg/m^3).
-            _GET_HORIZONTAL_(self%id_bedstress,bedstress)
+            !_GET_HORIZONTAL_(self%id_bedstress,bedstress)
+            !!YSK added taub
+            _GET_HORIZONTAL_(self%id_taub,bedstress)
+
             _GET_(self%id_dens,density)
-            fac = min(max_rel_res,self%er*max(0.0_rk,bedstress/density/self%vel_crit**2 - 1._rk))
+            !fac = min(max_rel_res,self%er*max(0.0_rk,bedstress/density/self%vel_crit**2 - 1._rk))
+            fac = min(max_rel_res,self%er*max(0.0_rk,bedstress/self%vel_crit - 1._rk))
+            !write(*,*) bedstress,self%vel_crit
 
             ! Carbon
             if (_VARIABLE_REGISTERED_(self%id_c)) then

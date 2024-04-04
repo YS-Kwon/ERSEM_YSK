@@ -9,57 +9,63 @@ instances:
       a0w: 0.03                                           # absorption coefficient of clear water (1/m), default = 0.036
       b0w: 0.0015                                         # backscatter coefficient of clear water (1/m), default = 0.0016
       pEIR_eow: 0.5                                       # photosynthetically active fraction of shortwave radiation (-), default = 0.5
+    coupling:
+      R5s: R5/s                                           
+      R6s: R6/s
+      R8s: R8/s
+
+
   N1:
     long_name: phosphate
     model: ersem/pelagic_base
     parameters:
-      composition: p                                      # elemental composition
-      c0: 0.001                                           # background carbon concentration (mg C/m^3), default = 0.0
+      composition: p                                       # elemental composition
+      c0: 0.001                                            # background carbon concentration (mg C/m^3), default = 0.0
     initialization:
-      p: 0.4                                              # phosphorus (mmol P/m^3)
+      p: 0.6    #1.2                                                  # phosphorus (mmol P/m^3)
   N3:
     long_name: nitrate
     model: ersem/pelagic_base
     parameters:
-      composition: n                                      # elemental composition
-      c0: 0.001                                           # background carbon concentration (mg C/m^3), default = 0.0
+      composition: n                                       # elemental composition
+      c0: 0.001                                            # background carbon concentration (mg C/m^3), default = 0.0
     initialization:
-      n: 8.0                                              # nitrogen (mmol N/m^3)
+      n: 5.5   #6   #13.5                                               # nitrogen (mmol N/m^3)
   N4:
     long_name: ammonium
     model: ersem/pelagic_base
     parameters:
-      composition: n                                      # elemental composition
-      c0: 0.001                                           # background carbon concentration (mg C/m^3), default = 0.0
+      composition: n                                       # elemental composition
+      c0: 0.001                                            # background carbon concentration (mg C/m^3), default = 0.0
     initialization:
-      n: 0.1                                              # nitrogen (mmol N/m^3)
+      n: 0.2   #0.4                                               # nitrogen (mmol N/m^3)
   N5:
     long_name: silicate
     model: ersem/pelagic_base
     parameters:
-      composition: s                                      # elemental composition
-      s0: 0.0003                                          # background silicon concentration (mmol Si/m^3), default = 0.0
+      composition: s                                       # elemental composition
+      s0: 0.0003                                           # background silicon concentration (mmol Si/m^3), default = 0.0
     initialization:
-      s: 4.5                                              # silicate (mmol Si/m^3)
+      s: 10   #13                                              # silicate (mmol Si/m^3)
   O2:
     long_name: oxygen
     model: ersem/oxygen
     parameters:
-      iswO2: 2                                            # saturation formulation (1: legacy ERSEM, 2: Weiss 1970, 3: Nightingale et al. 2000, 4: Wanninkhof 2014)
+      ISWO2: 2                                            # saturation formulation (1: legacy ERSEM, 2: Weiss 1970)
+      sddep: 0                                            # Air suspended sediment flux (g m-2 d-1)
     initialization:
-      o: 300.0                                            # oxygen (mmol O_2/m^3)
+      o: 300.0                                            # oxygen
   O3:
     long_name: carbonate
     model: ersem/carbonate
     parameters:
       iswCO2: 1                                           # carbonate system diagnostics (0: off, 1: on), default = 1
-      iswASFLUX: 1                                        # air-sea CO2 exchange (0: none, 1: Nightingale et al. 2000, 2: Wanninkhof 1992 without chemical enhancement, 3: Wanninkhof 1992 with chemical enhancement, 4: Wanninkhof and McGillis 1999, 5: Wanninkhof 1992 switching to Wanninkhof and McGillis 1999, 6: Wan, default = 6
+      iswASFLUX: 1                                        # air-sea CO2 exchange (0: none, 1: Nightingale and Liss, 2: Wanninkhof 1992 without chemical enhancement, 3: Wanninkhof 1992 with chemical enhancement, 4: Wanninkhof 1999), default = 1
       iswtalk: 2                                          # alkalinity formulation (1-4: from salinity and temperature, 5: dynamic alkalinity), default = 5
       pHscale: 1                                          # pH scale (1: total, 0: SWS, -1: SWS backward compatible), default = 1
       iswbioalk: 1                                        # use bioalkalinity (0: off, 1: on), default = 1
     initialization:
       c: 2130.0                                           # total dissolved inorganic carbon (mmol C/m^3)
-      bioalk: 0                                            # bioalkalinity (mmol/m^3)
   R1:
     long_name: labile dissolved organic matter
     model: ersem/pelagic_base
@@ -86,6 +92,22 @@ instances:
       c0: 0.0033                                          # background carbon concentration (mg C/m^3), default = 0.0
     initialization:
       c: 12.0                                             # carbon (mg C/m^3)
+  R5:
+    long_name: inorganic suspended matter
+    model: ersem/pelagic_base
+    parameters:
+      composition: sf                                   # elemental composition
+      c0: 0.0033                                          # background carbon concentration (mg C/m^3), default = 0.0
+      rm: 0.4                                            # sinking velocity of fine silt (m/d; Holt et al. 1999 in the North Sea)
+      ndeposition: 1                                      # number of target pools for sedimentation, default = 0
+      vel_crit: 0.1   #0.1                                       # critical stress for deposition (Pa, kg m-1 s-2) 
+    initialization:
+      #c: 7.2                                              # carbon (mg C/m^3)
+      s: 2                                              # silicon (g S/m^3)
+      #p: 0.007                                            # phosphorus (mmol P/m^3)
+      #f: 0.0036                                           # iron (micromol Fe/m^3)
+    coupling:
+      deposition_target1: Q5
   R4:
     long_name: small-size pom
     model: ersem/pelagic_base
@@ -95,14 +117,17 @@ instances:
       iopABS: 1e-05                                       # specific shortwave absorption (m^2/mg C), default = 0.0
       iopBBS: 1.6e-05                                     # specific shortwave backscatter (m^2/mg C), default = 0.0
       rm: 1.0                                             # sinking velocity (m/d), default = 0.0
-      ndeposition: 2                                      # number of target pools for sedimentation, default = 1
+      ndeposition: 2                                      # number of target pools for sedimentation, default = 0
       qxc2: 0.1                                           # fraction of carbon sinking into deposition target 2 (-)
       qxn2: 0.1                                           # fraction of nitrogen sinking into deposition target 2 (-)
       qxp2: 0.06                                          # fraction of phosphorus sinking into deposition target 2 (-)
+      #qxf2: 0.0                                           # fraction of iron sinking into deposition target 2 (-)
+      vel_crit: 0.1   #0.1 
     initialization:
       c: 7.2                                              # carbon (mg C/m^3)
       n: 0.1                                              # nitrogen (mmol N/m^3)
       p: 0.007                                            # phosphorus (mmol P/m^3)
+      #f: 0.0036                                           # iron (micromol Fe/m^3)
     coupling:
       deposition_target1: Q6
       deposition_target2: Q7
@@ -115,16 +140,19 @@ instances:
       iopABS: 1e-05                                       # specific shortwave absorption (m^2/mg C), default = 0.0
       iopBBS: 1.6e-05                                     # specific shortwave backscatter (m^2/mg C), default = 0.0
       rm: 5.0                                             # sinking velocity (m/d), default = 0.0
-      ndeposition: 2                                      # number of target pools for sedimentation, default = 1
+      ndeposition: 2                                      # number of target pools for sedimentation, default = 0
       qxc2: 0.1                                           # fraction of carbon sinking into deposition target 2 (-)
       qxn2: 0.1                                           # fraction of nitrogen sinking into deposition target 2 (-)
       qxp2: 0.06                                          # fraction of phosphorus sinking into deposition target 2 (-)
-      qxs2: 0.0                                           # fraction of silicate sinking into deposition target 2 (-)
+      qxs2: 0.0                                           # fraction of silicate sinking into deposition target 2 (-) 
+      #qxf2: 0.0                                           # fraction of iron sinking into deposition target 2 (-)
+      vel_crit: 0.1                                       # critical stress for deposition (Pa, kg m-1 s-2) 
     initialization:
       c: 17.0                                             # carbon (mg C/m^3)
       n: 0.24                                             # nitrogen (mmol N/m^3)
       p: 0.02                                             # phosphorus (mmol P/m^3)
       s: 0.1                                              # silicate (mmol Si/m^3)
+      #f: 0.0085                                           # iron (micomol Fe/m^3)
     coupling:
       deposition_target1: Q6
       deposition_target2: Q7
@@ -142,6 +170,7 @@ instances:
       qxn2: 0.1                                           # fraction of nitrogen sinking into deposition target 2 (-)
       qxp2: 0.06                                          # fraction of phosphorus sinking into deposition target 2 (-)
       qxs2: 0.0                                           # fraction of silicate sinking into deposition target 2 (-)
+      vel_crit: 0.1                                       # critical stress for deposition (Pa, kg m-1 s-2) 
     initialization:
       c: 0.17                                             # carbon (mg C/m^3)
       n: 0.0024                                           # nitrogen (mmol N/m^3)
@@ -167,6 +196,28 @@ instances:
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
+  Q5:
+    long_name: benthic particulate inorganic matter
+    model: ersem/benthic_base
+    parameters:
+      composition: sf                                   # elemental composition
+      remin: 0.0
+      resuspension: true                                  # enable resuspension, default = false
+      vel_crit: 1   #0.41    #0.02                            # critical shear velocity for deposition (N/m2), default = 0.02
+      c0: 0.001                                           # background carbon concentration (mg C/m^2), default = 0.0
+    initialization:
+      #n: 3.5                                              # nitrogen (mmol N/m^2)
+      #p: 0.5                                              # phosphorus (mmol P/m^2)
+      s: 200                                               # silicon (g S/m^2)
+      #f: 1.695
+    coupling:
+      RP: R5
+      #O3c: O3/c                                           # dissolved inorganic carbon (mmol/m^3)
+      #N1p: N1/p                                           # phosphate (mmol P/m^3)
+      #N3n: N3/n                                           # nitrate (mmol N/m^3)
+      #N4n: N4/n                                           # ammonium (mmol N/m^3)
+      #N5s: N5/s                                           # silicate (mmol Si/m^3)
+      #N7f: N7/f
   Q6:
     long_name: benthic particulate organic matter
     model: ersem/benthic_base
@@ -175,13 +226,14 @@ instances:
       remin: 0.05                                         # remineralisation rate at 10 degrees Celsius (1/d), default = 0.0
       pN3: 0.9                                            # nitrate fraction of remineralised nitrogen (remainder is ammonium) (-), default = 0.0
       resuspension: true                                  # enable resuspension, default = false
-      vel_crit: 0.02                                      # critical shear velocity for resuspension (m/s), default = 0.02
+      vel_crit: 0.1   #0.41   #0.02                               # critical shear velocity for resuspension (m/s), default = 0.02
       c0: 0.001                                           # background carbon concentration (mg C/m^2), default = 0.0
     initialization:
       c: 3052.0                                           # carbon (mg C/m^2)
       n: 3.5                                              # nitrogen (mmol N/m^2)
       p: 0.5                                              # phosphorus (mmol P/m^2)
       s: 149.0                                            # silicate (mmol Si/m^2)
+      #f: 1.695
     coupling:
       RP: R6
       O3c: O3/c                                           # dissolved inorganic carbon (mmol/m^3)
@@ -189,6 +241,7 @@ instances:
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
       N5s: N5/s                                           # silicate (mmol Si/m^3)
+      #N7f: N7/f
   Q7:
     long_name: benthic refractory matter
     model: ersem/benthic_base
@@ -235,6 +288,7 @@ instances:
       rR2: 0.0075                                         # fraction of semi-labile DOC available to bacteria (-)
       rR3: 0.0025                                         # fraction of semi-refractory DOC available to bacteria (-)
       frR3: 0.3                                           # fraction of activity respiration converted to semi-refractory DOC (-)
+      sdflux: 0.03                                         # suspended sediment flux (g m-3 d-1;lateral)
     initialization:
       c: 15.7                                             # carbon (mg C/m^3)
       n: 0.26                                             # nitrogen (mmol N/m^3)
@@ -245,6 +299,7 @@ instances:
       RP3: R8
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
+      #N7f: N7/f
       R1c: R1/c                                           # labile dissolved organic carbon (mg C/m^3)
       R1p: R1/p                                           # labile dissolved organic phosphorus (mmol P/m^3)
       R1n: R1/n                                           # labile dissolved organic nitrogen (mmol N/m^3)
@@ -252,6 +307,7 @@ instances:
       R3c: R3/c                                           # semi-refractory DOC (mg C/m^3)
       O3c: O3/c                                           # carbon dioxide (mmol C/m^3)
       O2o: O2/o                                           # oxygen (mmol O_2/m^3)
+      R5s: R5/s                                           # for suspended matter flux
   pel_nit:
     long_name: pelagic nitrification
     model: ersem/nitrification
@@ -276,6 +332,8 @@ instances:
       pu_ra: 0.2                                          # respired fraction of primary production (-)
       qnlc: 0.0042                                        # minimum nitrogen to carbon ratio (mmol N/mg C)
       qplc: 0.0001                                        # minimum phosphorus to carbon ratio (mmol P/mg C)
+      #qflc: 0.00005                                       # minimum iron to carbon ratio (micromol Fe/mg C)
+      #qfRc: 0.0005                                        # maximum iron to carbon ratio (micromol Fe/mg C)
       xqcp: 1.0                                           # threshold for phosphorus limitation (relative to Redfield ratio) (-)
       xqcn: 1.0                                           # threshold for nitrogen limitation (relative to Redfield ratio) (-)
       xqp: 2.0                                            # maximum phosphorus to carbon ratio (relative to Redfield ratio) (-)
@@ -283,6 +341,7 @@ instances:
       qun3: 0.0025                                        # nitrate affinity (m^3/mg C/d)
       qun4: 0.0025                                        # ammonium affinity (m^3/mg C/d)
       qurp: 0.003                                         # phosphate affinity (m^3/mg C/d)
+      #qurf: 0.0003 
       snplux: 1.0                                         # specific tendency of luxury uptake of nutrients towards maximum quota (1/d), default = 1.0
       use_Si: true                                        # use silicate, default = false
       qsc: 0.0118                                         # maximum silicate to carbon ratio (mmol Si/mg C)
@@ -310,11 +369,14 @@ instances:
       qxp3: 0.003                                         # fraction of phosphorus sinking into deposition target 3 (-)
       qxs2: 0.0                                           # fraction of silicate sinking into deposition target 2 (-)
       qxs3: 0.0                                           # fraction of silicate sinking into deposition target 3 (-)
+      #qxf2: 0.0
+      #qxf3: 0.0
     initialization:
       c: 8.0                                              # carbon (mg C/m^3)
       n: 0.1114                                           # nitrogen (mmol N/m^3)
       p: 0.009                                            # phosphorus (mmol P/m^3)
       s: 0.128                                            # silicate (mmol Si/m^3)
+      #f: 0.004
       Chl: 0.4                                            # chlorophyll a (mg/m^3)
     coupling:
       RP: R6
@@ -325,6 +387,7 @@ instances:
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
       N5s: N5/s                                           # silicate (mmol Si/m^3)
+      #N7f: N7/f
       R1c: R1/c                                           # dissolved organic carbon (mg C/m^3)
       R1p: R1/p                                           # dissolved organic phosphorus (mmol P/m^3)
       R1n: R1/n                                           # dissolved organic nitrogen (mmol N/m^3)
@@ -342,6 +405,8 @@ instances:
       pu_ra: 0.2                                          # respired fraction of primary production (-)
       qnlc: 0.005                                         # minimum nitrogen to carbon ratio (mmol N/mg C)
       qplc: 0.000225                                      # minimum phosphorus to carbon ratio (mmol P/mg C)
+      #qflc: 0.0001                                        # minimum iron to carbon ratio (micromol Fe/mg C)
+      #qfRc: 0.0003                                        # maximum iron to carbon ratio (micromol Fe/mg C)
       xqcp: 1.0                                           # threshold for phosphorus limitation (relative to Redfield ratio) (-)
       xqcn: 1.0                                           # threshold for nitrogen limitation (relative to Redfield ratio) (-)
       xqp: 2.0                                            # maximum phosphorus to carbon ratio (relative to Redfield ratio) (-)
@@ -349,6 +414,7 @@ instances:
       qun3: 0.004                                         # nitrate affinity (m^3/mg C/d)
       qun4: 0.004                                         # ammonium affinity (m^3/mg C/d)
       qurp: 0.004                                         # phosphate affinity (m^3/mg C/d)
+      #qurf: 0.0004                                        # iron affinity (m^3/mg C/d)
       snplux: 1.0                                         # specific tendency of luxury uptake of nutrients towards maximum quota (1/d), default = 1.0
       use_Si: false                                       # use silicate, default = false
       sdo: 0.05                                           # 1.1 of minimal specific lysis rate (1/d)
@@ -373,10 +439,13 @@ instances:
       qxn3: 0.05                                          # fraction of nitrogen sinking into deposition target 3 (-)
       qxp2: 0.6                                           # fraction of phosphorus sinking into deposition target 2 (-)
       qxp3: 0.03                                          # fraction of phosphorus sinking into deposition target 3 (-)
+      #qxf2: 0.0 
+      #qxf3: 0.0
     initialization:
       c: 5.9                                              # carbon (mg C/m^3)
       n: 0.0926                                           # nitrogen (mmol N/m^3)
       p: 0.0036                                           # phosphorus (mmol P/m^3)
+      #f: 0.00295
       Chl: 0.3                                            # chlorophyll a (mg/m^3)
     coupling:
       RP: R4
@@ -386,6 +455,7 @@ instances:
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
+      #N7f: N7/f
       R1c: R1/c                                           # dissolved organic carbon (mg C/m^3)
       R1p: R1/p                                           # dissolved organic phosphorus (mmol P/m^3)
       R1n: R1/n                                           # dissolved organic nitrogen (mmol N/m^3)
@@ -405,6 +475,8 @@ instances:
       pu_ra: 0.2                                          # respired fraction of primary production (-)
       qnlc: 0.006                                         # minimum nitrogen to carbon ratio (mmol N/mg C)
       qplc: 0.00035                                       # minimum phosphorus to carbon ratio (mmol P/mg C)
+      #qflc: 0.00015                                       # minimum iron to carbon ratio (micromol Fe/mg C)
+      #qfRc: 0.0005                                        # maximum iron to carbon ratio (micromol Fe/mg C)
       xqcp: 1.0                                           # threshold for phosphorus limitation (relative to Redfield ratio) (-)
       xqcn: 1.0                                           # threshold for nitrogen limitation (relative to Redfield ratio) (-)
       xqp: 1.5                                            # maximum phosphorus to carbon ratio (relative to Redfield ratio) (-)
@@ -412,6 +484,7 @@ instances:
       qun3: 0.006                                         # nitrate affinity (m^3/mg C/d)
       qun4: 0.007                                         # ammonium affinity (m^3/mg C/d)
       qurp: 0.006                                         # phosphate affinity (m^3/mg C/d)
+      #qurf: 0.0006
       snplux: 1.0                                         # specific tendency of luxury uptake of nutrients towards maximum quota (1/d), default = 1.0
       use_Si: false                                       # use silicate, default = false
       sdo: 0.055                                          # 1.1 of minimal specific lysis rate (1/d)
@@ -435,10 +508,13 @@ instances:
       qxn3: 0.05                                          # fraction of nitrogen sinking into deposition target 3 (-)
       qxp2: 0.6                                           # fraction of phosphorus sinking into deposition target 2 (-)
       qxp3: 0.03                                          # fraction of phosphorus sinking into deposition target 3 (-)
+      #qxf2: 0.0 
+      #qxf3: 0.0
     initialization:
       c: 5.9                                              # carbon (mg C/m^3)
       n: 0.0926                                           # nitrogen (mmol N/m^3)
       p: 0.0036                                           # phosphorus (mmol P/m^3)
+      #f: 0.00295
       Chl: 0.3                                            # chlorophyll a (mg/m^3)
     coupling:
       RP: R4
@@ -448,6 +524,7 @@ instances:
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
+      #N7f: N7/f
       R1c: R1/c                                           # dissolved organic carbon (mg C/m^3)
       R1p: R1/p                                           # dissolved organic phosphorus (mmol P/m^3)
       R1n: R1/n                                           # dissolved organic nitrogen (mmol N/m^3)
@@ -465,6 +542,8 @@ instances:
       pu_ra: 0.2                                          # respired fraction of primary production (-)
       qnlc: 0.0042                                        # minimum nitrogen to carbon ratio (mmol N/mg C)
       qplc: 0.0001                                        # minimum phosphorus to carbon ratio (mmol P/mg C)
+      #qflc: 0.00005                                       # minimum iron to carbon ratio (micromol Fe/mg C)
+      #qfRc: 0.0005                                        # maximum iron to carbon ratio (micromol Fe/mg C)
       xqcp: 1.0                                           # threshold for phosphorus limitation (relative to Redfield ratio) (-)
       xqcn: 1.0                                           # threshold for nitrogen limitation (relative to Redfield ratio) (-)
       xqp: 2.7                                            # maximum phosphorus to carbon ratio (relative to Redfield ratio) (-)
@@ -472,6 +551,7 @@ instances:
       qun3: 0.002                                         # nitrate affinity (m^3/mg C/d)
       qun4: 0.002                                         # ammonium affinity (m^3/mg C/d)
       qurp: 0.002                                         # phosphate affinity (m^3/mg C/d)
+      #qurf: 0.0002
       snplux: 1.0                                         # specific tendency of luxury uptake of nutrients towards maximum quota (1/d), default = 1.0
       use_Si: false                                       # use silicate, default = false
       sdo: 0.045                                          # 1.1 of minimal specific lysis rate (1/d)
@@ -495,10 +575,13 @@ instances:
       qxn3: 0.05                                          # fraction of nitrogen sinking into deposition target 3 (-)
       qxp2: 0.6                                           # fraction of phosphorus sinking into deposition target 2 (-)
       qxp3: 0.03                                          # fraction of phosphorus sinking into deposition target 3 (-)
+      #qxf2: 0.0
+      #qxf3: 0.0 
     initialization:
       c: 5.9                                              # carbon (mg C/m^3)
       n: 0.0926                                           # nitrogen (mmol N/m^3)
       p: 0.0036                                           # phosphorus (mmol P/m^3)
+      #f: 0.00295
       Chl: 0.3                                            # chlorophyll a (mg/m^3)
     coupling:
       RP: R6
@@ -508,6 +591,7 @@ instances:
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N3n: N3/n                                           # nitrate (mmol N/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
+      #N7f: N7/f
       R1c: R1/c                                           # dissolved organic carbon (mg C/m^3)
       R1p: R1/p                                           # dissolved organic phosphorus (mmol P/m^3)
       R1n: R1/n                                           # dissolved organic nitrogen (mmol N/m^3)
@@ -564,6 +648,11 @@ instances:
       prey7: Z6
       prey8: B1
       prey9: R6
+      #prey1f_sink: R6/f                                   # sink for iron of prey 1
+      #prey2f_sink: R4/f                                   # sink for iron of prey 2
+      #prey3f_sink: R4/f                                   # sink for iron of prey 3
+      #prey4f_sink: R6/f                                   # sink for iron of prey 4
+      #prey9f_sink: N7/f                                   # sink for iron of prey 9
       RP: R8
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
@@ -619,6 +708,10 @@ instances:
       prey5: P4
       prey6: Z5
       prey7: Z6
+      #prey2f_sink: R6/f                                   # sink for iron of prey 2
+      #prey3f_sink: R4/f                                   # sink for iron of prey 3
+      #prey4f_sink: R4/f                                   # sink for iron of prey 4
+      #prey5f_sink: R6/f                                   # sink for iron of prey 5
       RP: R6
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
@@ -668,6 +761,8 @@ instances:
       prey2: P2
       prey3: P3
       prey4: Z6
+      #prey2f_sink: R4/f                                   # sink for iron of prey 2
+      #prey3f_sink: R4/f                                   # sink for iron of prey 3
       RP: R4
       N1p: N1/p                                           # phosphate (mmol P/m^3)
       N4n: N4/n                                           # ammonium (mmol N/m^3)
@@ -699,15 +794,12 @@ instances:
       O3c: O3/c                                           # total dissolved inorganic carbon (mmol C/m^3)
   bL2:
     long_name: benthic calcite
-    model: ersem/benthic_calcite
+    model: ersem/benthic_base
     parameters:
-      iswcal: 1                                           # dissolution dependence on calcite saturation (0: none, 1: power law, 2: hyperbolic)
-      ndiss: 2.22                                         # power of the dissolution law (Keir 1980) (-)
-      fdissmax: 30.0                                      # maximum specific dissolution rate (1/d), default = 0.0
-      fdissmin: 0.05                                      # minimum specific dissolution rate (1/d), default = 0.03
-      c0: 1e-05                                           # background calcite concentration (mg C/m^2), default = 0.0
+      composition: c                                      # elemental composition
+      remin: 0.05                                         # remineralisation rate at 10 degrees Celsius (1/d), default = 0.0
+      c0: 1e-05                                           # background carbon concentration (mg C/m^2), default = 0.0
     initialization:
       c: 0.05                                             # carbon (mg C/m^2)
     coupling:
-      Om_Cal: O3/Om_cal                                   # calcite saturation (-)
       O3c: O3/c                                           # dissolved inorganic carbon (mmol/m^3)
