@@ -14,6 +14,7 @@ module ersem_model_library
    use ersem_bacteria
    use ersem_bacteria_docdyn
    use ersem_nitrification
+   use ersem_nitrous_oxide
    use ersem_light
    use ersem_light_iop
    use ersem_light_iop_ady
@@ -25,6 +26,7 @@ module ersem_model_library
    use ersem_benthic_bacteria
    use ersem_benthic_fauna
    use ersem_benthic_carbonate
+   use ersem_benthic_calcite
    use ersem_benthic_erosion
    use ersem_fluff
    use ersem_zenith_angle
@@ -64,6 +66,7 @@ contains
          case ('bacteria');                                allocate(type_ersem_bacteria::model)
          case ('bacteria_docdyn');                         allocate(type_ersem_bacteria_docdyn::model)
          case ('nitrification');                           allocate(type_ersem_nitrification::model)
+         case ('nitrous_oxide');                           allocate(type_ersem_nitrous_oxide::model)
          case ('light');                                   allocate(type_ersem_light::model)
          case ('light_iop');                               allocate(type_ersem_light_iop::model)
          case ('light_iop_ady');                           allocate(type_ersem_light_iop_ady::model)
@@ -76,6 +79,7 @@ contains
          case ('benthic_column_particulate_matter_layer'); allocate(type_ersem_benthic_pom_layer::model)
          case ('benthic_fauna');                           allocate(type_ersem_benthic_fauna::model)
          case ('benthic_carbonate');                       allocate(type_ersem_benthic_carbonate::model)
+         case ('benthic_calcite');                         allocate(type_ersem_benthic_calcite::model)
          case ('benthic_erosion');                         allocate(type_ersem_benthic_erosion::model)
          case ('fluff');                                   allocate(type_ersem_fluff::model)
          case ('zenith_angle');                            allocate(type_ersem_zenith_angle::model)

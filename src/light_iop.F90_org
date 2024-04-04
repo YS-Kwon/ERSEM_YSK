@@ -10,13 +10,9 @@ module ersem_light_iop
    private
 
    type,extends(type_base_model),public :: type_ersem_light_iop
-      !!YSK added for ESS modification   
-      type (type_state_variable_id)                 :: id_chl
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       ! Identifiers for diagnostic variables
       type (type_diagnostic_variable_id)   :: id_EIR, id_parEIR, id_xEPS, id_secchi, id_iopABS, id_iopBBS
-      type (type_dependency_id)            :: id_dz, id_iopABSp, id_iopBBSp,id_abESS
+      type (type_dependency_id)            :: id_dz, id_abESS ,id_iopABSp, id_iopBBSp
       type (type_horizontal_dependency_id) :: id_I_0, id_zenithA
 
       ! Parameters
@@ -74,7 +70,7 @@ contains
       class (type_ersem_light_iop),intent(in) :: self
       _DECLARE_ARGUMENTS_VERTICAL_
 
-      real(rk) :: buffer,dz,xEPS,iopABS,iopBBS,xtnc,EIR,abESS,zenithA,conc
+      real(rk) :: buffer,dz,xEPS,iopABS,iopBBS,xtnc,EIR,abESS,zenithA
       real(rk),parameter :: bpk=.00022_rk
 
       _GET_HORIZONTAL_(self%id_I_0,buffer)
@@ -87,18 +83,6 @@ contains
          _GET_(self%id_iopABSp,iopABS) ! Absorption coefficient of shortwave radiation, due to particulate organic material (m-1)
          _GET_(self%id_iopBBSp,iopBBS) ! Backscatter coefficient of shortwave radiation, due to particulate organic material (m-1)
          _GET_(self%id_abESS,abESS)    ! Suspended silt absorption
-
-         !!!YSK added for modifying ESS
-         _GET_(self%id_chl,conc)
-
-         !if (conc .ge. 0.0_rk) then
-         !   abESS = 0.063 + 0.0058*conc  !!Wozniak 2007    !0.0520 * conc ** 0.635    !!Bricaud et al. 1998
-         !elseif (conc .lt. 0.0_rk) then
-         !   abESS = 0.01    !0.0_rk
-         !end if
-
-         !write(*,*) abESS
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          iopABS = iopABS+abESS+self%a0w
          iopBBS = iopBBS+bpk+self%b0w
          xEPS = (1._rk+.005_rk*zenithA)*iopABS+4.18_rk*(1._rk-.52_rk*exp(-10.8_rk*iopABS))*iopBBS ! Lee et al. (2005) J Geophys Res Eq 11

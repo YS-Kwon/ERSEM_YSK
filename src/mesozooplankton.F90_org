@@ -24,11 +24,9 @@ module ersem_mesozooplankton
       type (type_state_variable_id)      :: id_R2c
       type (type_state_variable_id)      :: id_RPc,id_RPp,id_RPn,id_RPs
       type (type_state_variable_id)      :: id_N1p,id_N4n
-      type (type_dependency_id)          :: id_ETW,id_eO2mO2,id_EIR    !!YSK added EIR for DVM
-
+      type (type_dependency_id)          :: id_ETW,id_eO2mO2
       type (type_dependency_id)          :: id_totprey
       type (type_horizontal_dependency_id) :: id_inttotprey
-      type (type_horizontal_dependency_id) :: id_I_0, id_zenithA    !!YSK added for DVM
 
       type (type_diagnostic_variable_id) :: id_fZIO3c,id_calc
       type (type_diagnostic_variable_id) :: id_fZIRDc,id_fZIRPc
@@ -42,7 +40,7 @@ module ersem_mesozooplankton
       real(rk) :: q10,chro,minfood,chuc
       real(rk),allocatable :: suprey(:),pu_ea(:)
       real(rk) :: sum
-      real(rk) :: sdo, sd, srs, vr   !vr added by YSK for DVM
+      real(rk) :: sdo, sd, srs
       real(rk) :: pu
       real(rk) :: pe_R1
       real(rk) :: gutdiss
@@ -56,11 +54,6 @@ module ersem_mesozooplankton
 !     Model procedures
       procedure :: initialize
       procedure :: do
-
-      !!YSK added for DVM
-      procedure :: get_vertical_movement
-      procedure :: get_sinking_rate
-
    end type
 
 contains
@@ -102,12 +95,6 @@ contains
       call self%get_parameter(self%Minprey,'Minprey','mg C/m^2',   'food threshold for overwintering state')
       call self%get_parameter(self%repw,   'repw',   '1/d',        'specific overwintering respiration')
       call self%get_parameter(self%mort,   'mort',   '1/d',        'specific overwintering mortality')
-      
-      
-     !!!YSK added for DVM 
-     call self%get_parameter(self%vr,   'vr',   'm/d',        'vertical migration rate')
-
-     !!!!!!!!!!!!!!!!!!!!!!!
 
       call self%get_parameter(self%R1R2,   'R1R2','-','labile fraction of produced dissolved organic carbon')
       call self%get_parameter(self%xR1p,   'xR1p','-','transfer of phosphorus to DOM, relative to POM',default=0._rk)
@@ -234,13 +221,6 @@ contains
       ! Register environmental dependencies (temperature, shortwave radiation)
       call self%register_dependency(self%id_ETW,standard_variables%temperature)
       call self%register_dependency(self%id_eO2mO2,standard_variables%fractional_saturation_of_oxygen)
-
-      !YSK added for DVM
-      call self%register_dependency(self%id_EIR,standard_variables%downwelling_shortwave_flux)
-      call self%register_dependency(self%id_I_0,standard_variables%surface_downwelling_shortwave_flux)
-      call self%register_horizontal_dependency(self%id_zenithA, type_horizontal_standard_variable(name='zenith_angle'))
-
-
 
       ! Register diagnostics
       call self%register_diagnostic_variable(self%id_fZIO3c,'fZIO3c','mg C/m^3/d','respiration')
@@ -539,62 +519,5 @@ contains
       _LOOP_END_
 
    end subroutine do
-
-!!!!!!YSK added for DVM of zoopl
-   function get_sinking_rate(self,_ARGUMENTS_LOCAL_) result(SD)
-       class (type_ersem_mesozooplankton),intent(in) :: self
-       _DECLARE_ARGUMENTS_LOCAL_
-
-       real(rk) :: c
-       real(rk) :: SD,vr
-       _GET_WITH_BACKGROUND_(self%id_c,c)
-
-
-       ! Sedimentation and resting stages.....................................
-       SD = self%vr
-    end function
-
-
-    subroutine get_vertical_movement(self,_ARGUMENTS_GET_VERTICAL_MOVEMENT_)
-       class (type_ersem_mesozooplankton),intent(in) :: self
-       _DECLARE_ARGUMENTS_GET_VERTICAL_MOVEMENT_
-
-       real(rk) :: SD
-       real(rk) :: ETW,EIR,I_0,zenithA
-
-       _GET_HORIZONTAL_(self%id_I_0,I_0)
-       _GET_HORIZONTAL_(self%id_zenithA,zenithA) 
-
-
-
-       _LOOP_BEGIN_
-
-
-          ! Retrieve local state
-          !!SD positive --> sinking, SD negative upward movement
-          !write(*,*) I_0, zenithA
-          if (zenithA .lt. 75) then
-             !if (EIR .ge. 50) then
-             SD = -get_sinking_rate(self,_ARGUMENTS_LOCAL_)
-                !_SET_VERTICAL_MOVEMENT_(self%id_c,SD)
-             !elseif (EIR .lt. 50) then
-             !   SD = -get_sinking_rate(self,_ARGUMENTS_LOCAL_)
-                !_SET_VERTICAL_MOVEMENT_(self%id_c,-SD)
-             !end if
-
-          else if (zenithA .ge. 75) then
-             SD = get_sinking_rate(self,_ARGUMENTS_LOCAL_) 
-             !_SET_VERTICAL_MOVEMENT_(self%id_c,-SD)
-          end if
-
-
-          _SET_VERTICAL_MOVEMENT_(self%id_c,SD)
-
-
-          
-       _LOOP_END_
-
-    end subroutine get_vertical_movement
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end module

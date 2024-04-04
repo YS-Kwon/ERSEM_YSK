@@ -13,16 +13,20 @@ module ersem_pelagic_base
    private
 
    type,extends(type_particle_model),public :: type_ersem_pelagic_base
-      type (type_state_variable_id)                 :: id_c,id_n,id_p,id_f,id_s,id_chl
-      type (type_horizontal_dependency_id)          :: id_bedstress,id_wdepth
+      type (type_state_variable_id)                 :: id_c,id_n,id_p,id_f,id_s,id_chl,id_h
+      type (type_horizontal_dependency_id)          :: id_bedstress,id_wdepth,id_taub
       type (type_dependency_id)                     :: id_dens
       type (type_horizontal_diagnostic_variable_id) :: id_w_bot
       type (type_horizontal_diagnostic_variable_id),allocatable,dimension(:) :: id_cdep,id_ndep,id_pdep,id_sdep,id_fdep
+      type (type_diagnostic_Variable_id)            :: id_kflux_c, id_kflux_n, id_kflux_p, id_kflux_s, id_kflux_f
+      type (type_state_variable_id)                 :: id_k_product_c,id_k_product_n,id_k_product_p,id_k_product_s,id_k_product_f
+      type (type_dependency_id)                     :: id_temp
 
       ! Target variables for sedimentation
       type (type_bottom_state_variable_id),allocatable,dimension(:) :: id_targetc,id_targetn,id_targetp,id_targets,id_targetf
 
       real(rk) :: rm = 0.0_rk
+      real(rk) :: k1, q_10
       real(rk) :: tdep
       integer :: ndeposition
       logical :: no_river_dilution = .false.
@@ -30,6 +34,7 @@ module ersem_pelagic_base
    contains
       procedure :: initialize
       procedure :: do_bottom
+      procedure :: do
 
       procedure :: initialize_ersem_base
       procedure :: get_sinking_rate
@@ -70,6 +75,15 @@ contains
          end if
       end if
       call self%get_parameter(rRPmX, 'rm', 'm/d', 'sinking velocity', default=0.0_rk)
+      
+      ! k1 is the _degradation_ rate of a first order kinetic rate that will be applied too all constituents
+      ! the value needs to be positive but the process is considered a degradation (i.e. the reaction will lead to consumption)
+      ! the rate can be made dependent on temperature by specifying a q10 value different from 1
+      call self%get_parameter(self%k1,'k1','1/d','1st order kinetic rate', default=0.0_rk,minimum=0.0_rk)
+      call self%get_parameter(self%q_10, 'q10', '-', 'Q_10 temperature coefficient for the 1st order kinetic', default=1.0_rk, minimum=1.0_rk)
+      if (self%k1>0._rk) call self%register_dependency(self%id_temp,standard_variables%temperature)
+      
+
 
       call self%initialize_ersem_base(rm=rRPmX, sedimentation=rRPmX>0._rk)
 
@@ -84,14 +98,51 @@ contains
             self%id_c,scale_factor=iopBBS,include_background=.true.)
          call self%add_to_aggregate_variable(standard_variables%attenuation_coefficient_of_photosynthetic_radiative_flux, &
             self%id_c,scale_factor=EPS,include_background=.true.)
+         if (self%k1/=0._rk) then
+             ! if a degradation rate greater than 0 is specified, then prodC is the link to the module that is the product of the C degradation 
+             ! and kflux_c is the flux
+             call self%register_state_dependency(self%id_k_product_c,'prodC','mgC/m^3','product of 1st order kinetic')
+             call self%register_diagnostic_variable(self%id_kflux_c,'kflux_c','mmolC/m^3/d','1st order kinetic flux of carbon',source=source_do)
+         endif
       end if
-      if (index(composition,'n')/=0) call self%add_constituent('n',0.0_rk,qnRPIcX*c0)
-      if (index(composition,'p')/=0) call self%add_constituent('p',0.0_rk,qpRPIcX*c0)
+      if (index(composition,'n')/=0) then 
+         call self%add_constituent('n',0.0_rk,qnRPIcX*c0)
+         if (self%k1/=0._rk) then
+             ! if a degradation rate greater than 0 is specified, then prodC is the link to the module that is the product of the N degradation 
+             ! and kflux_n is the flux
+             call self%register_state_dependency(self%id_k_product_n,'prodN','mmolN/m^3','product of 1st order kinetic')
+             call self%register_diagnostic_variable(self%id_kflux_n,'kflux_n','mmolN/m^3/d','1st order kinetic flux of nitrogen',source=source_do)
+         endif
+      endif
+      if (index(composition,'p')/=0) then 
+         call self%add_constituent('p',0.0_rk,qpRPIcX*c0)
+         if (self%k1/=0._rk) then
+             ! if a degradation rate greater than 0 is specified, then prodC is the link to the module that is the product of the P degradation 
+             ! and kflux_p is the flux
+             call self%register_state_dependency(self%id_k_product_p,'prodP','mmolP/m^3','product of 1st order kinetic')
+             call self%register_diagnostic_variable(self%id_kflux_p,'kflux_p','mmolP/m^3/d','1st order kinetic flux of phosphorus',source=source_do)
+         endif
+      endif
       if (index(composition,'s')/=0) then
          call self%get_parameter(s0,'s0','mmol Si/m^3','background silicon concentration',default=qsRPIcX*c0)
          call self%add_constituent('s',0.0_rk,s0)
+         if (self%k1/=0._rk) then
+             ! if a degradation rate greater than 0 is specified, then prodC is the link to the module that is the product of the Si degradation 
+             ! and kflux_s is the flux
+             call self%register_state_dependency(self%id_k_product_s,'prodS','mmolSi/m^3','product of 1st order kinetic')
+             call self%register_diagnostic_variable(self%id_kflux_s,'kflux_s','mmolSi/m^3/d','1st order kinetic flux of silicate',source=source_do)
+         endif
       end if
-      if (index(composition,'f')/=0) call self%add_constituent('f',0.0_rk)
+      if (index(composition,'f')/=0) then 
+          call self%add_constituent('f',0.0_rk)
+          if (self%k1/=0._rk) then
+             ! if a degradation rate greater than 0 is specified, then prodC is the link to the module that is the product of the Fe degradation 
+             ! and kflux_f is the flux
+             call self%register_state_dependency(self%id_k_product_f,'prodF','nmolFe/m^3','product of 1st order kinetic')
+             call self%register_diagnostic_variable(self%id_kflux_f,'kflux_f','nmolFe/m^3/d','1st order kinetic flux of iron',source=source_do)
+          endif
+      endif
+      if (index(composition,'h')/=0) call self%add_constituent('h',0.0_rk)
 
    end subroutine
 
@@ -125,7 +176,9 @@ contains
          call self%get_parameter(vel_crit,'vel_crit','m/s','critical bed shear velocity for deposition',default=0.01_rk)
          self%tdep = vel_crit**2
 
-         call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         !call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+         call self%register_dependency(self%id_taub,standard_variables%bottom_stress)
+
          call self%register_dependency(self%id_dens,     standard_variables%density)
       end if
 
@@ -157,6 +210,8 @@ contains
          if (use_iron) call register(self%id_f,'f','umol Fe','iron',standard_variables%total_iron,self%qxf,self%id_fdep,self%id_targetf)
       case ('chl')
          call register(self%id_chl,'Chl','mg','chlorophyll a',total_chlorophyll)
+      case ('h')
+         call register(self%id_h,'h','mmol','reduction equivalent',total_h)
       case default
          call self%fatal_error('add_constituent','Unknown constituent "'//trim(name)//'".')
       end select
@@ -215,6 +270,55 @@ contains
 
       rm = self%rm
    end function
+   
+   subroutine DO (self, _ARGUMENTS_DO_)
+      class (type_ersem_pelagic_base), intent(in) :: self
+      
+      real (rk) :: k1_rate,state, et, ETW
+      
+      
+      _DECLARE_ARGUMENTS_DO_
+      
+         _LOOP_BEGIN_
+         ! first order kinetics
+         if (self%k1/=0.0_rk) then
+               _GET_(self%id_temp,ETW)
+               eT = self%q_10**((ETW-10._rk)/10._rk)
+               k1_rate=self%k1 * eT
+               if (_VARIABLE_REGISTERED_(self%id_c)) then
+                  _GET_(self%id_c,state)
+                  _SET_ODE_(self%id_c,-k1_rate*state)
+                  _SET_DIAGNOSTIC_(self%id_kflux_c,K1_rate*state)
+                  _SET_ODE_(self%id_k_product_c,k1_rate*state)
+               end if
+               if (_VARIABLE_REGISTERED_(self%id_n)) then
+                  _GET_(self%id_n,state)
+                  _SET_ODE_(self%id_n,-k1_rate*state)
+                  _SET_DIAGNOSTIC_(self%id_kflux_n,K1_rate*state)
+                  _SET_ODE_(self%id_k_product_n,k1_rate*state)
+               end if
+               if (_VARIABLE_REGISTERED_(self%id_p)) then
+                  _GET_(self%id_p,state)
+                  _SET_ODE_(self%id_p,-k1_rate*state)
+                  _SET_DIAGNOSTIC_(self%id_kflux_p,K1_rate*state)
+                  _SET_ODE_(self%id_k_product_p,k1_rate*state)
+               end if
+               if (_VARIABLE_REGISTERED_(self%id_s)) then
+                  _GET_(self%id_s,state)
+                  _SET_ODE_(self%id_s,-k1_rate*state)
+                  _SET_DIAGNOSTIC_(self%id_kflux_s,K1_rate*state)
+                  _SET_ODE_(self%id_k_product_s,k1_rate*state)
+               end if
+               if (_VARIABLE_REGISTERED_(self%id_f)) then
+                  _GET_(self%id_f,state)
+                  _SET_ODE_(self%id_f,-k1_rate*state)
+                  _SET_DIAGNOSTIC_(self%id_kflux_f,K1_rate*state)
+                  _SET_ODE_(self%id_k_product_f,k1_rate*state)
+               end if
+            end if
+       _LOOP_END_
+   end subroutine
+
 
    subroutine do_bottom(self,_ARGUMENTS_DO_BOTTOM_)
       class (type_ersem_pelagic_base), intent(in) :: self
@@ -239,11 +343,13 @@ contains
          if (self%ndeposition/=0) then
 
          ! Retrieve bed stress and local density - needed to determine sedimentation rate from sinking rate.
-         _GET_HORIZONTAL_(self%id_bedstress,tbed)
+         !_GET_HORIZONTAL_(self%id_bedstress,tbed)
+         _GET_HORIZONTAL_(self%id_taub,tbed)
+
          _GET_(self%id_dens,density)
 
          ! Divide actual bed stress (Pa) by density (kg/m^3) to obtain square of bed shear velocity.
-         tbed = tbed/density
+         tbed = (tbed*30+0.2)/density
 
          ! Deposition rate based on sinking velocity but mediated by bottom stress (high stress = no deposition)
          ! Original reference: Puls and Suendermann 1990. However, they use the ratio of shear velocities, while we use its square.

@@ -16,7 +16,7 @@ module ersem_benthic_erosion
 
    type,extends(type_base_model),public :: type_ersem_benthic_erosion
       type (type_dependency_id)                     :: id_dens
-      type (type_horizontal_dependency_id)          :: id_bedstress
+      type (type_horizontal_dependency_id)          :: id_bedstress,id_taub
       type (type_horizontal_dependency_id)          :: id_porosity
       type (type_horizontal_diagnostic_variable_id) :: id_v_er
 
@@ -37,7 +37,9 @@ contains
       call self%get_parameter(self%M,   'M',   'g*s/m^4','erosion constant (Puls & Suendermann 1990)',      default=100.0_rk)
 
       call self%register_dependency(self%id_dens,     standard_variables%density)
-      call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+      !call self%register_dependency(self%id_bedstress,standard_variables%bottom_stress)
+      call self%register_dependency(self%id_taub,standard_variables%bottom_stress)
+
       call self%register_dependency(self%id_porosity, sediment_porosity)
       call self%register_diagnostic_variable(self%id_v_er,'v_er','m/d','erosion rate',standard_variable=sediment_erosion,source=source_do_bottom)
    end subroutine initialize
@@ -51,12 +53,14 @@ contains
 
       _HORIZONTAL_LOOP_BEGIN_
          _GET_(self%id_dens,rho_wat)
-         _GET_HORIZONTAL_(self%id_bedstress,tau_bot)
+         !_GET_HORIZONTAL_(self%id_bedstress,tau_bot)
+         _GET_HORIZONTAL_(self%id_taub,tau_bot)
+
          _GET_HORIZONTAL_(self%id_porosity,porosity)
 
          ! Sediment erosion (g/s/m^2) as per Puls & Suendermann (1990).
          ! Note: square of bed shear velocity = bed stress (Pa)/density (kg/m^3)
-         er = self%M * max(0.0_rk,tau_bot/rho_wat - self%v_cr**2)
+         er = self%M * max(0.0_rk,(tau_bot*30+0.2)/rho_wat - self%v_cr**2)
 
          ! Convert from sediment erosion in g/s/m^2 to erosion rate in m/d by dividing by sediment density.
          ! rho_sed is the sediment density (dry sediment per total volume) at the sediment surface in kg/m^3 (hence the multiplication by 1000).
