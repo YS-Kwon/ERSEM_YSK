@@ -10,7 +10,7 @@
 
 #### psl: at least 6 hourly sea level pressure (Pa)
 
-#### tdps: at least 6 hourly 2m dewpoint temperature (K)
+#### hurs: at least 6 hourly surface relative humidity (%)
 
 #### clt: at least 6 hourly total cloud cover percentage (%)
 
