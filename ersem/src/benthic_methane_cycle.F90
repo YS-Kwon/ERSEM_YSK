@@ -1,0 +1,227 @@
+#include "fabm_driver.h"
+
+module ersem_benthic_methane_cycle
+
+   use fabm_types
+   use ersem_shared
+   use ersem_benthic_base
+
+
+   implicit none
+
+   private
+
+   ! Model for methane cycle
+   type,extends(type_base_model),public :: type_ersem_benthic_methane_cycle
+
+      type (type_bottom_state_variable_id) :: id_G6c!,id_KSO4!,id_benTA,id_benTA2
+      type (type_bottom_state_variable_id) :: id_G3c,id_K4n,id_K1p
+      type (type_bottom_state_variable_id) :: id_Q1c,id_Q6c,id_Q7c,id_Q1n,id_Q6n,id_Q7n,id_Q1p,id_Q6p,id_Q7p
+      type (type_bottom_state_variable_id) :: id_G2o,id_K3n
+
+      type (type_dependency_id)            :: id_X1X,id_ETW
+
+      type(type_horizontal_diagnostic_variable_id):: id_DcQ7_G6,id_DcQ6_G6,id_DcQ1_G6
+      type(type_horizontal_diagnostic_variable_id):: id_G6_G2,id_G6_SO4
+
+      !Model parameters
+      !specific rates of biogeochemical processes
+      !Methane
+      real(rk):: s_omso_o2,s_omso_no3,s_omch_so4,s_OM_refr
+      real(rk):: K_DOML_ch4,K_POML_ch4,K_POMR_ch4
+      real(rk):: K_ch4_o2,K_ch4_so4
+      !---- Stoichiometric coefficients ----!
+      real(rk):: r_c_n, r_n_p
+
+   contains
+      procedure :: initialize
+      procedure :: do_bottom
+   end type
+
+contains
+
+   subroutine initialize(self,configunit)
+      class (type_ersem_benthic_methane_cycle),intent(inout),target :: self
+      integer,                                 intent(in)           :: configunit
+
+   !Methane
+      call self%get_parameter(self%s_omso_o2, 's_omso_o2', 'uM O','threshold of o2 for OM sulfate reduction')
+      call self%get_parameter(self%s_omso_no3, 's_omso_no3', 'uM N','threshold of noX for OM sulfate reduction')
+      call self%get_parameter(self%s_omch_so4, 's_omch_so4', 'uM S','threshold of SO4 for CH4 production from OM')
+      call self%get_parameter(self%s_OM_refr, 's_OM_refr', 'uM N','threshold of decay of refractory OM')
+      call self%get_parameter(self%K_DOML_ch4, 'K_DOML_ch4', '1/day','Specific rate of CH4 production from DOML')
+      call self%get_parameter(self%K_POML_ch4, 'K_POML_ch4', '1/day','Specific rate of CH4 production from POML')
+      call self%get_parameter(self%K_POMR_ch4, 'K_POMR_ch4', '1/day','Specific rate of CH4 production from POMR')
+      call self%get_parameter(self%K_ch4_o2, 'K_ch4_o2', '1/day','Specific rate of oxidation of CH4 with O2')
+      call self%get_parameter(self%K_ch4_so4, 'K_ch4_so4', '1/day','Specific rate of oxidation of CH4 with SO4')
+
+      call self%register_state_dependency(self%id_K3n,'K3n','mmol N/m^2','benthic nitrate in 1st layer')
+      call self%register_state_dependency(self%id_K4n,'K4n','mmol N/m^2','benthic ammonium in 1st layer')
+      call self%register_state_dependency(self%id_G2o,'G2o','mmol O_2/m^2','benthic oxygen in 1st layer')
+
+      !----Stoichiometric coefficients----!
+      call self%get_parameter(self%r_c_n,   'r_c_n',  '-','C[uM]/N[uM]',default=6.625_rk)
+      call self%get_parameter(self%r_n_p,   'r_n_p',  '-','N[uM]/P[uM]',default=16.0_rk)
+
+      !register state variables
+      call self%register_state_variable(self%id_G6c,'G6c','mmol C/m**2','methane gas',minimum=0.0_rk)
+      !register state dependencies
+      call self%register_state_dependency(self%id_G3c,'G3c','mmol C/m**2','DIC')
+      call self%register_state_dependency(self%id_K1p,'K1p','mmol P/m**2','benthic phosphate in 1st layer')
+      
+      call self%register_state_dependency(self%id_Q1c,'Q1c','mmol C/m^2','dissolved organic carbon')
+      call self%register_state_dependency(self%id_Q6c,'Q6c','mmol C/m^2','particulate organic carbon')
+      call self%register_state_dependency(self%id_Q7c,'Q7c','mmol C/m^2','particulate organic carbon')
+      call self%register_state_dependency(self%id_Q1n,'Q1n','mmol N/m^2','dissolved organic nitrogen')
+      call self%register_state_dependency(self%id_Q6n,'Q6n','mmol N/m^2','particulate organic nitrogen')
+      call self%register_state_dependency(self%id_Q7n,'Q7n','mmol N/m^2','particulate organic nitrogen')
+      call self%register_state_dependency(self%id_Q1p,'Q1p','mmol P/m^2','dissolved organic phosphorus')
+      call self%register_state_dependency(self%id_Q6p,'Q6p','mmol P/m^2','particulate organic phosphorus')
+      call self%register_state_dependency(self%id_Q7p,'Q7p','mmol P/m^2','particulate organic phosphorus')
+
+      !call self%register_state_dependency(self%id_KSO4,'KSO4','mmol/m**2','benthic sulphate')
+      !call self%request_coupling_to_model(self%id_KSO4,'KSO4',standard_variables%total_silicate)
+
+      
+      !Register diagnostic variables
+      call self%register_horizontal_diagnostic_variable(self%id_DcQ6_G6,'DcQ6_G6','mmol C/m**2','CH4 production fromQ6',source=source_do_bottom)
+      call self%register_horizontal_diagnostic_variable(self%id_DcQ1_G6,'DcQ1_G6','mmol C/m**2','CH4 production fromQ1',source=source_do_bottom)
+      call self%register_horizontal_diagnostic_variable(self%id_DcQ7_G6,'DcQ7_G6','mmol C/m**2','CH4 production from Q7',source=source_do_bottom)
+      call self%register_horizontal_diagnostic_variable(self%id_G6_G2,'G6_G2','mmol C/m**2/d','CH4 oxidation with oxygen',source=source_do_bottom)
+      call self%register_horizontal_diagnostic_variable(self%id_G6_SO4,'G6_SO4','mmol C/m**2/d','CH4 anaeribic oxidation with SO4',source=source_do_bottom)
+
+      !   Register environmental dependencies
+      call self%register_dependency(self%id_X1X,standard_variables%practical_salinity)
+
+
+   end subroutine initialize
+
+   subroutine do_bottom(self,_ARGUMENTS_DO_BOTTOM_)
+      class (type_ersem_benthic_methane_cycle),intent(in) :: self
+      _DECLARE_ARGUMENTS_DO_BOTTOM_
+
+      !state variables
+      real(rk):: G3c,K3n,K4n,K1p
+      real(rk):: G2o,G6c!,KSO4
+      real(rk):: Q1c,Q6c,Q7c,Q1n,Q6n,Q7n,Q1p,Q6p,Q7p
+      !processes
+      real(rk):: DcQ1_G6,DcQ6_G6,DcQ7_G6
+      real(rk):: DcTOM_G6,G6_G2,G6_SO4
+      !LOCAL VARIABLES:
+      real(rk):: X1X,SO4
+
+      
+      !increments
+      real(rk):: d_G2,d_G6,d_K4,d_G3,d_K1,d_SO4
+      real(rk):: d_Q1,d_Q6,d_Q7,d_Q1_c,d_Q6_c,d_Q7_c
+
+      _HORIZONTAL_LOOP_BEGIN_
+    
+        !salinity      
+        _GET_(self%id_X1X,X1X)         
+      
+        !state variables    
+        _GET_HORIZONTAL_(self%id_Q1c,Q1c)
+        _GET_HORIZONTAL_(self%id_Q1n,Q1n)
+        _GET_HORIZONTAL_(self%id_Q1p,Q1p)
+
+        _GET_HORIZONTAL_(self%id_Q6c,Q6c)
+        _GET_HORIZONTAL_(self%id_Q6n,Q6n)
+        _GET_HORIZONTAL_(self%id_Q6p,Q6p)
+
+        _GET_HORIZONTAL_(self%id_Q7c,Q7c)
+        _GET_HORIZONTAL_(self%id_Q7n,Q7n)
+        _GET_HORIZONTAL_(self%id_Q7p,Q7p)
+
+        _GET_HORIZONTAL_(self%id_K1p,K1p)
+        _GET_HORIZONTAL_(self%id_K4n,K4n)
+        _GET_HORIZONTAL_(self%id_K3n,K3n)
+        !_GET_HORIZONTAL_(self%id_KSO4,KSO4)
+     
+        _GET_HORIZONTAL_(self%id_G2o,G2o)
+        _GET_HORIZONTAL_(self%id_G3c,G3c)
+        _GET_HORIZONTAL_(self%id_G6c,G6c)
+       
+
+        if (G2o > 0 .and. K3n > 0) then 
+           SO4 = 0.28   !mol m-2 
+        else if (G2o <= 0 .and. K3n > 0) then
+           SO4 = 0.15   !mol m-2
+        else if (G2o <= 0 .and. K3n <= 0) then
+           SO4 = 0.03   !mol m-2 
+        end if
+
+        !CH4 production from DOML, POML, and POMR 
+        !(CH2O)106(NH3)16H3PO4 -> 53 CO2 + 53 CH4 + 16 NH3 + H3PO4
+        DcQ1_G6 = self%K_DOML_ch4*Q1c*(1._rk-0.5_rk*(1._rk+tanh(G2o-self%s_omso_o2))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(K3n-self%s_omso_no3))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(SO4-self%s_omch_so4))) 
+        DcQ6_G6 = self%K_POML_ch4*Q6c*(1._rk-0.5_rk*(1._rk+tanh(G2o-self%s_omso_o2))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(K3n-self%s_omso_no3))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(SO4-self%s_omch_so4))) 
+        DcQ7_G6 = self%K_POMR_ch4*Q7c*(1._rk-0.5_rk*(1._rk+tanh(G2o-self%s_omso_o2))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(K3n-self%s_omso_no3))) &
+                  *(1._rk-0.5_rk*(1._rk+tanh(SO4-self%s_omch_so4))) &
+                  *(0.5_rk*(1._rk+tanh((Q7c-self%s_OM_refr)*0.1_rk))) 
+
+
+
+       
+        !aerobic oxidation of CH4 in the sediment 
+        !!CH4 + 2O2 = HCO3 + H2O
+
+        G6_G2 = self%K_ch4_o2*G6c*G2o
+        d_G2 = -G6_G2
+        _SET_BOTTOM_ODE_(self%id_G2o,d_G2)
+        
+        if (G2O < 0.0_rk) then
+          G2O = 0.0_rk
+        end if
+
+        !!!!!!CH4 anoxic oxidation with SO4
+        !CH4 + SO42- + 2 H+  = CO2 + H2S + 2H2O
+        G6_SO4 = self%K_ch4_so4*SO4*G6c
+        !d_SO4 = -G6_SO4  
+        !SO4 = SO4 + d_SO4
+
+        write(*,*) G2O, SO4
+
+        d_Q1 = -DcQ1_G6
+        _SET_BOTTOM_ODE_(self%id_Q1c,d_Q1)
+        !_SET_BOTTOM_ODE_(self%id_Q1n,d_Q1*16/106)
+        !_SET_BOTTOM_ODE_(self%id_Q1p,d_Q1*1/106)
+         
+        d_Q6 = -DcQ6_G6
+        _SET_BOTTOM_ODE_(self%id_Q6c,d_Q6)
+        !_SET_BOTTOM_ODE_(self%id_Q6n,d_Q6*16/106)
+        !_SET_BOTTOM_ODE_(self%id_Q6p,d_Q6*1/106)
+
+        !d_Q7 = -DcQ7_G6
+        !_SET_BOTTOM_ODE_(self%id_Q7c,d_Q7)
+        !_SET_BOTTOM_ODE_(self%id_Q7n,d_Q7*16/106)
+        !_SET_BOTTOM_ODE_(self%id_Q7p,d_Q7*1/106)
+         
+        ! d_SO4 = -G6_SO4
+        !_SET_BOTTOM_ODE_(self%id_KSO4,d_SO4)
+        d_G3 = 0.5_rk*(DcQ6_G6+DcQ1_G6+DcQ7_G6)+0.5*G6_G2+G6_SO4
+        _SET_BOTTOM_ODE_(self%id_G3c,d_G3)
+        d_G6 = 0.5_rk*(DcQ1_G6+DcQ6_G6+DcQ7_G6)-0.5*G6_G2-G6_SO4
+        _SET_BOTTOM_ODE_(self%id_G6c,d_G6)
+
+        !d_K4 = (DcQ1_G6+DcQ6_G6+DcQ7_G6)*16/106
+        !_SET_BOTTOM_ODE_(self%id_K4n,d_K4)
+       
+        !d_K1 = (DcQ1_G6+DcQ6_G6+DcQ7_G6)*1/106
+        !_SET_BOTTOM_ODE_(self%id_K1p,d_K1)
+
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_DcQ6_G6,DcQ6_G6)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_DcQ1_G6,DcQ1_G6)
+        !_SET_HORIZONTAL_DIAGNOSTIC_(self%id_DcQ7_G6,DcQ7_G6)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_G6_G2,G6_G2)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_G6_SO4,G6_SO4)
+
+        _HORIZONTAL_LOOP_END_
+ 
+     end subroutine do_bottom
+
+end module
