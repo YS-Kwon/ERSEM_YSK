@@ -1,0 +1,1 @@
+/usr/bin/gfortran   -O3 -DNDEBUG -O3 CMakeFiles/test_albedo.dir/test_albedo.F90.o  -o test_albedo  ../util/libutil.a ../airsea/libairsea.a ../input/libinput_manager.a ../util/libutil.a ../extern/flexout/src/liboutput_manager.a ../extern/flexout/extern/yaml/libyaml.a ../extern/flexout/src/libfield_manager.a -L/usr/local/lib -lnetcdff -L/usr/local/lib -lnetcdf -lnetcdf 

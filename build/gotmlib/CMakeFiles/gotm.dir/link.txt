@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgotm.a  CMakeFiles/gotm.dir/gotm.F90.o CMakeFiles/gotm.dir/cmdline.F90.o CMakeFiles/gotm.dir/diagnostics.F90.o CMakeFiles/gotm.dir/register_all_variables.F90.o CMakeFiles/gotm.dir/deprecated_output.F90.o CMakeFiles/gotm.dir/print_version.F90.o
+/usr/bin/ranlib libgotm.a

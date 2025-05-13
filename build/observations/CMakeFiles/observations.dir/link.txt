@@ -1,0 +1,2 @@
+/usr/bin/ar qc libobservations.a  CMakeFiles/observations.dir/analytical_profile.F90.o CMakeFiles/observations.dir/const_NNS.F90.o CMakeFiles/observations.dir/const_NNT.F90.o CMakeFiles/observations.dir/observations.F90.o
+/usr/bin/ranlib libobservations.a

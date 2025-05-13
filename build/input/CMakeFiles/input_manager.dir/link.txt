@@ -1,0 +1,2 @@
+/usr/bin/ar qc libinput_manager.a  CMakeFiles/input_manager.dir/input.F90.o CMakeFiles/input_manager.dir/input_netcdf.F90.o
+/usr/bin/ranlib libinput_manager.a

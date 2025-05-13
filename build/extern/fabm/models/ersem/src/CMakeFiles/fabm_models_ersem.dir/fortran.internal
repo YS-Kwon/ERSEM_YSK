@@ -1,0 +1,31 @@
+# The fortran modules provided by this target.
+provides
+ ersem_bacteria.mod
+ ersem_bacteria_docdyn.mod
+ ersem_benthic_bacteria.mod
+ ersem_benthic_base.mod
+ ersem_benthic_calcite.mod
+ ersem_benthic_carbonate.mod
+ ersem_benthic_column.mod
+ ersem_benthic_column_dissolved_matter.mod
+ ersem_benthic_column_particulate_matter.mod
+ ersem_benthic_erosion.mod
+ ersem_benthic_fauna.mod
+ ersem_benthic_nitrogen_cycle.mod
+ ersem_calcification.mod
+ ersem_carbonate.mod
+ ersem_fluff.mod
+ ersem_light.mod
+ ersem_light_iop.mod
+ ersem_light_iop_ady.mod
+ ersem_mesozooplankton.mod
+ ersem_microzooplankton.mod
+ ersem_model_library.mod
+ ersem_nitrification.mod
+ ersem_nitrous_oxide.mod
+ ersem_oxygen.mod
+ ersem_pelagic_base.mod
+ ersem_primary_producer.mod
+ ersem_shared.mod
+ ersem_version.mod
+ ersem_zenith_angle.mod

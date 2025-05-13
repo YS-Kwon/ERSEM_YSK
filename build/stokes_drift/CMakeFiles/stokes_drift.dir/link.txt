@@ -1,0 +1,2 @@
+/usr/bin/ar qc libstokes_drift.a  CMakeFiles/stokes_drift.dir/stokes_drift_theory.F90.o CMakeFiles/stokes_drift.dir/stokes_drift_exp.F90.o CMakeFiles/stokes_drift.dir/stokes_drift.F90.o
+/usr/bin/ranlib libstokes_drift.a

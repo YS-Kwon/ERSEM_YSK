@@ -1,0 +1,16 @@
+# The fortran modules provided by this target.
+provides
+ fabm_uhh_clcaki.mod
+ fabm_uhh_clcbase.mod
+ fabm_uhh_clchet.mod
+ fabm_uhh_clcrec.mod
+ fabm_uhh_clcveg.mod
+ fabm_uhh_diatoms.mod
+ fabm_uhh_dinoflag.mod
+ fabm_uhh_ergom_split_base.mod
+ fabm_uhh_ergom_split_utilities.mod
+ fabm_uhh_ergom_split_zoo.mod
+ fabm_uhh_halogen.mod
+ fabm_uhh_phy_feedback.mod
+ fabm_uhh_uv.mod
+ uhh_model_library.mod

@@ -1,0 +1,4 @@
+# The fortran modules provided by this target.
+provides
+ fabm_nersc_ecosmo_operational.mod
+ nersc_model_library.mod

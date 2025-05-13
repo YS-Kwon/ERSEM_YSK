@@ -1,0 +1,4 @@
+# The fortran modules provided by this target.
+provides
+ csiro_model_library.mod
+ csiro_seagrass.mod

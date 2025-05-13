@@ -1,0 +1,2 @@
+/usr/bin/ar qc libconfig.a  CMakeFiles/config.dir/settings.F90.o
+/usr/bin/ranlib libconfig.a

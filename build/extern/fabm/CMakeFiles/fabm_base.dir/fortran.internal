@@ -1,0 +1,18 @@
+# The fortran modules provided by this target.
+provides
+ fabm_builtin_constant.mod
+ fabm_builtin_depth_integral.mod
+ fabm_builtin_models.mod
+ fabm_builtin_reduction.mod
+ fabm_builtin_relaxation.mod
+ fabm_builtin_scale.mod
+ fabm_builtin_source.mod
+ fabm_builtin_sum.mod
+ fabm_builtin_time_filter.mod
+ fabm_driver.mod
+ fabm_expressions.mod
+ fabm_parameters.mod
+ fabm_particle.mod
+ fabm_properties.mod
+ fabm_standard_variables.mod
+ fabm_types.mod

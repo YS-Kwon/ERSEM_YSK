@@ -1,0 +1,16 @@
+# The fortran modules provided by this target.
+provides
+ fabm.mod
+ fabm_config.mod
+ fabm_config_types.mod
+ fabm_coupling.mod
+ fabm_debug.mod
+ fabm_graph.mod
+ fabm_job.mod
+ fabm_library.mod
+ fabm_schedule.mod
+ fabm_task_order.mod
+ fabm_v0_compatibility.mod
+ fabm_version.mod
+ fabm_work.mod
+ fabm_yaml.mod
